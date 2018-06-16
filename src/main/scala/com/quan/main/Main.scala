@@ -1,9 +1,10 @@
 package com.quan.main
 
 import com.quan.context.AppContext
-import com.quan.context.util.RandomHelper
+import com.quan.util.RandomHelper
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.rdd.RDD
+import breeze.linalg._
 
 
 object Main {
@@ -11,9 +12,11 @@ object Main {
     Logger.getLogger("org").setLevel(Level.ERROR)
 
     val r: RDD[Vector[Double]] = Reader.read("src/resources/mfeat-kar.txt", "[ \t]+")
-      .map(_.map(_.toDouble).to[Vector])
-    val b: RDD[Vector[Int]] = Reader.read("src/resources/digits.csv", ",")
-      .map(_.map(_.toInt).to[Vector])
+      .map(arr => new DenseVector[Double](arr.map(_.toDouble)))
+
+    val b: RDD[Vector[Double]] = Reader.read("src/resources/digits.csv", ",")
+      .map(arr  => new DenseVector[Double](arr.map(_.toDouble)))
+
     val n = r.take(1)(0).size // size of continuous part
     val m = b.take(1)(0).size // size of binary part
     println("r size: " + r.count() + " x " + r.take(1)(0).size)
@@ -33,10 +36,11 @@ object Main {
     var BMean = RandomHelper.createRandomBinaryVector(m)
     var BEpsilon = AppContext.getRandom.nextDouble() / 2
 
-//    println("B Mean: " + BMean.size)
-//    println("R Mean: " + RMean.size)
-
-//    println("BEpsilon: " + BEpsilon)
+    println("B Mean: " + BMean.size)
+    println(BMean)
+    println("R Mean: " + RMean.size)
+    println(RMean)
+    println("BEpsilon: " + BEpsilon)
 
     while (t < NIter) {
       t += 1
