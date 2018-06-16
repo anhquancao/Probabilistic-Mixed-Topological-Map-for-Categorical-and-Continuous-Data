@@ -4,6 +4,10 @@ import breeze.linalg._
 
 
 object DistributionHelper {
+  def hammingDistance(xi: Vector[Int], xj: Vector[Int]): Int = {
+    val diff:Vector[Int] = xi - xj
+    sum((diff).map(v => v.abs))
+  }
 
   def gaussian(x: Vector[Double], mean: Vector[Double], std: Double): Double = {
     val normSquare: Double = scala.math.pow(norm(x - mean), 2.0)

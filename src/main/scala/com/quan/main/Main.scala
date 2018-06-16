@@ -42,7 +42,9 @@ object Main {
     println(RMean)
     println("BEpsilon: " + BEpsilon)
 
-    println(DistributionHelper.gaussian(DenseVector(80.0, 82.0), DenseVector(74.0, 81.0), 7.0))
+//    println(DistributionHelper.gaussian(DenseVector(80.0, 82.0), DenseVector(74.0, 81.0), 7.0))
+//    println(DistributionHelper.hammingDistance(DenseVector(0,1,0,0,1), DenseVector(1,1,0,1,0)))
+
     while (t < NIter) {
       t += 1
       val T: Double = TMax * scala.math.pow(TMin / TMax, t / (NIter))
