@@ -1,10 +1,10 @@
 package com.quan.main
 
+import breeze.linalg._
 import com.quan.context.AppContext
-import com.quan.util.RandomHelper
+import com.quan.util.{DistributionHelper, RandomHelper}
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.rdd.RDD
-import breeze.linalg._
 
 
 object Main {
@@ -15,7 +15,7 @@ object Main {
       .map(arr => new DenseVector[Double](arr.map(_.toDouble)))
 
     val b: RDD[Vector[Double]] = Reader.read("src/resources/digits.csv", ",")
-      .map(arr  => new DenseVector[Double](arr.map(_.toDouble)))
+      .map(arr => new DenseVector[Double](arr.map(_.toDouble)))
 
     val n = r.take(1)(0).size // size of continuous part
     val m = b.take(1)(0).size // size of binary part
@@ -42,9 +42,10 @@ object Main {
     println(RMean)
     println("BEpsilon: " + BEpsilon)
 
+    println(DistributionHelper.gaussian(DenseVector(80.0, 82.0), DenseVector(74.0, 81.0), 7.0))
     while (t < NIter) {
       t += 1
-      val T = TMax * scala.math.pow(TMin / TMax, t / (NIter))
+      val T: Double = TMax * scala.math.pow(TMin / TMax, t / (NIter))
     }
   }
 }
