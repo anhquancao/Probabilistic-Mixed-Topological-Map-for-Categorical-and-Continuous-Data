@@ -2,13 +2,20 @@ package com.quan.main
 
 import breeze.linalg._
 import com.quan.context.AppContext
-import com.quan.util.{DistributionHelper, RandomHelper}
+import com.quan.model.Cell
+import com.quan.util.{DistributionHelper, RandomHelper, SOMHelper}
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.rdd.RDD
 
 
 object Main {
   def main(args: Array[String]): Unit = {
+
+    // define the size of the cells map
+    val gridSize = (10, 10) // (num_rows, num_cols)
+
+    val cells: Array[Array[Cell]] = SOMHelper.createCells(gridSize._1, gridSize._2)
+
     Logger.getLogger("org").setLevel(Level.ERROR)
 
     val r: RDD[Vector[Double]] = Reader.read("src/resources/mfeat-kar.txt", "[ \t]+")
@@ -48,6 +55,7 @@ object Main {
     while (t < NIter) {
       t += 1
       val T: Double = TMax * scala.math.pow(TMin / TMax, t / (NIter))
+
     }
   }
 }
