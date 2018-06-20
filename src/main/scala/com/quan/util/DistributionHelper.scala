@@ -18,7 +18,7 @@ object DistributionHelper {
     left * right
   }
 
-  def kernel(c1: (Int, Int), c2: (Int, Int)): Double = {
+  def kernel(c1: (Int, Int), c2: (Int, Int)): Int = {
     scala.math.abs(c1._1 - c2._1) + scala.math.abs(c1._2 - c2._2)
   }
 }
