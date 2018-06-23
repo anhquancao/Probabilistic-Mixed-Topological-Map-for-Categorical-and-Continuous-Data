@@ -1,6 +1,8 @@
 package com.quan.util
 
+import com.quan.context.AppContext
 import com.quan.model.Cell
+import breeze.linalg._
 
 object SOMHelper {
   /**
@@ -17,4 +19,6 @@ object SOMHelper {
         ).toArray
     temp.toArray
   }
+
+
 }

@@ -4,8 +4,8 @@ import breeze.linalg._
 import com.quan.context.AppContext
 
 object RandomHelper {
-  def createRandomDoubleVector(size: Int): Vector[Double] = {
-    val temp = for (i <- 0 until size)
+  def createRandomDoubleVector(size: Long): Vector[Double] = {
+    val temp = for (i <- 0 until size.toInt)
       yield AppContext.getRandom.nextDouble()
     new DenseVector[Double](temp.toArray)
   }

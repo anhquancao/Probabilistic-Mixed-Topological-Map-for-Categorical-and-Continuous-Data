@@ -4,9 +4,9 @@ import breeze.linalg._
 
 
 object DistributionHelper {
-  def hammingDistance(xi: Vector[Int], xj: Vector[Int]): Int = {
+  def hammingDistance(xi: Vector[Int], xj: Vector[Int]): Double = {
     val diff: Vector[Int] = xi - xj
-    sum((diff).map(v => v.abs))
+    sum(diff.map(v => v.abs))
   }
 
   def gaussian(x: Vector[Double], mean: Vector[Double], std: Double): Double = {
@@ -20,5 +20,10 @@ object DistributionHelper {
 
   def kernel(c1: (Int, Int), c2: (Int, Int)): Int = {
     scala.math.abs(c1._1 - c2._1) + scala.math.abs(c1._2 - c2._2)
+  }
+
+  def bernouli(x: Vector[Int], mean: Vector[Int], epsilon: Double): Double = {
+    val hamming = DistributionHelper.hammingDistance(x, mean)
+    scala.math.pow(epsilon, hamming) * scala.math.pow(1 - epsilon, x.size - hamming)
   }
 }
