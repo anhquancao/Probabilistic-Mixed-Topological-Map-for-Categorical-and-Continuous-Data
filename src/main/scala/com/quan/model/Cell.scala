@@ -10,7 +10,7 @@ import com.quan.util.{DistributionHelper, RandomHelper}
   */
 class Cell(val rowI: Int, val colI: Int) {
   val col: Int = colI
-  val prob: Double = 0.0
+  val prob: Double = 1.0 / (AppContext.gridSize._1 * AppContext.gridSize._2)
   var row: Int = rowI
 
   // continuous parameters

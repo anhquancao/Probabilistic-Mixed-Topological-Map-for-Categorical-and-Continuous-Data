@@ -11,10 +11,6 @@ import org.apache.spark.rdd.RDD
 object Main {
   def main(args: Array[String]): Unit = {
 
-    // define the size of the cells map
-    val gridSize = (10, 10) // (num_rows, num_cols)
-
-
     Logger.getLogger("org").setLevel(Level.ERROR)
 
     val r: RDD[Vector[Double]] = Reader.read("src/resources/mfeat-kar.txt", "[ \t]+")
@@ -26,7 +22,7 @@ object Main {
     AppContext.contSize = r.take(1)(0).size // size of continuous part
     AppContext.binSize = b.take(1)(0).size // size of binary part
 
-    val cells: Array[Array[Cell]] = SOMHelper.createCells(gridSize._1, gridSize._2)
+    val cells: Array[Array[Cell]] = SOMHelper.createCells(AppContext.gridSize._1, AppContext.gridSize._2)
 
     val NIter: Int = 100
     val TMax = 10

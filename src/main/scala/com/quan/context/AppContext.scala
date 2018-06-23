@@ -7,6 +7,7 @@ import scala.util.Random
 object AppContext {
   var contSize: Int = 0
   var binSize: Int = 0
+  var gridSize: (Int, Int) =  (10, 10) // (num_rows, num_cols)
 
   private var sc: Option[SparkContext] = None
   private var random: Option[Random] = None
