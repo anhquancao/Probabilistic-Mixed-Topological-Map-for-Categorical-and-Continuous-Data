@@ -5,6 +5,9 @@ import org.apache.spark.{SparkConf, SparkContext}
 import scala.util.Random
 
 object AppContext {
+  var contSize: Int = 0
+  var binSize: Int = 0
+
   private var sc: Option[SparkContext] = None
   private var random: Option[Random] = None
 

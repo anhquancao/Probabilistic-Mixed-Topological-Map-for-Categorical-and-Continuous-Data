@@ -3,6 +3,12 @@ package com.quan.util
 import com.quan.model.Cell
 
 object SOMHelper {
+  /**
+    *
+    * @param numRows
+    * @param numCols
+    * @return
+    */
   def createCells(numRows: Int, numCols: Int): Array[Array[Cell]] = {
     val temp = for (row <- 0 to numRows)
       yield (
