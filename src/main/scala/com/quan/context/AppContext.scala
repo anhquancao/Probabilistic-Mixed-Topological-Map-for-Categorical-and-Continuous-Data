@@ -21,9 +21,6 @@ object AppContext {
   private var sc: Option[SparkContext] = None
   private var random: Option[Random] = None
 
-  var binData: Option[RDD[(Long, Vector[Int])]] = None
-  var contData: Option[RDD[(Long, Vector[Double])]] = None
-
   def getSparkContext: SparkContext = {
     val conf = new SparkConf()
     conf.setMaster("local")
@@ -39,13 +36,5 @@ object AppContext {
       random = Some(new Random(1))
     }
     random.get
-  }
-
-  def getContData: RDD[(Long, Vector[Double])] = {
-    contData.get
-  }
-
-  def getBinData: RDD[(Long, Vector[Int])] = {
-    binData.get
   }
 }

@@ -18,8 +18,13 @@ object DistributionHelper {
     left * right
   }
 
-  def kernel(c1: (Int, Int), c2: (Int, Int)): Int = {
+
+  def distance(c1: (Int, Int), c2: (Int, Int)): Int = {
     scala.math.abs(c1._1 - c2._1) + scala.math.abs(c1._2 - c2._2)
+  }
+
+  def kernel(distance: Double, T: Int): Double = {
+    scala.math.exp(-0.5 * distance / T)
   }
 
   def bernouli(x: Vector[Int], mean: Vector[Int], epsilon: Double): Double = {

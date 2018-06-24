@@ -17,6 +17,7 @@ class Cell(val rowI: Int, val colI: Int) extends Serializable {
   var pXBinOverC: Double = 0
   var pXOverC: Double = 0
 
+
   // continuous parameters
   var contStd: Double = AppContext.getRandom.nextDouble
   var contMean: Vector[Double] = RandomHelper.createRandomDoubleVector(AppContext.contSize)

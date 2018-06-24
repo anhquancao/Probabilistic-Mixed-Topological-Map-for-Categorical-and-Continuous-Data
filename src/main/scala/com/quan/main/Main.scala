@@ -9,27 +9,9 @@ import org.apache.spark.rdd.RDD
 
 
 object Main {
-  def computePXContOverC(cells: Array[Array[Cell]]): RDD[(Long, Array[Array[Double]])] = {
-    AppContext.getContData.mapValues(x => {
-      val temp = for (row <- 0 to AppContext.gridSize._1)
-        yield (
-          for (col <- 0 to AppContext.gridSize._2)
-            yield DistributionHelper.gaussian(x, cells(row)(col).contMean, cells(row)(col).contStd)
-          ).toArray
-      temp.toArray
-    })
-  }
 
-  def computePXBinOverC(cells: Array[Array[Cell]]): RDD[(Long, Array[Array[Double]])] = {
-    AppContext.getBinData.mapValues(x => {
-      val temp = for (row <- 0 to AppContext.gridSize._1)
-        yield (
-          for (col <- 0 to AppContext.gridSize._2)
-            yield DistributionHelper.bernouli(x, cells(row)(col).binMean, cells(row)(col).binEpsilon)
-          ).toArray
-      temp.toArray
-    })
-  }
+
+
 
   def main(args: Array[String]): Unit = {
 
@@ -45,22 +27,18 @@ object Main {
     AppContext.binSize = b.take(1)(0).size // size of binary part
 
     // Add index to the binary and continous data
-    AppContext.binData = Some(b.zipWithIndex().map(t => (t._2, t._1)))
-    AppContext.contData = Some(r.zipWithIndex().map(t => (t._2, t._1)))
+    val binData: RDD[(Long, Vector[Int])] = b.zipWithIndex().map(t => (t._2, t._1))
+    val contData: RDD[(Long, Vector[Double])] = r.zipWithIndex().map(t => (t._2, t._1))
 
     AppContext.dataSize = b.count()
     AppContext.pX = RandomHelper.createRandomDoubleVector(AppContext.dataSize)
 
     val cells: Array[Array[Cell]] = SOMHelper.createCells(AppContext.gridSize._1, AppContext.gridSize._2)
 
-    // compute the bernouli of x over c
-    val pXBinOverC: RDD[(Long, Array[Array[Double]])] = computePXBinOverC(cells)
 
-    // compute gaussian
-    val pXContOverC: RDD[(Long, Array[Array[Double]])] = computePXContOverC(cells)
-
+    val pXOverC: RDD[(Long, Array[Array[Double]])] = SOMHelper.computePXOverC(binData, contData, cells)
     //   val a = pXBinOverC.take(3)
-    val test = pXContOverC.take(3)
+    val test = pXOverC.take(3)
 
     var iter: Int = 0
 
