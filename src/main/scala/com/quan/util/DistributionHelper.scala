@@ -23,7 +23,7 @@ object DistributionHelper {
     scala.math.abs(c1._1 - c2._1) + scala.math.abs(c1._2 - c2._2)
   }
 
-  def kernel(distance: Double, T: Int): Double = {
+  def kernel(distance: Double, T: Double): Double = {
     scala.math.exp(-0.5 * distance / T)
   }
 

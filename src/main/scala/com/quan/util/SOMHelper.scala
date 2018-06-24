@@ -63,8 +63,8 @@ object SOMHelper {
     pXOverC
   }
 
-
-  def pCOverCStar(c: (Int, Int), cStar: (Int, Int), T: Int): Double = {
+  // compute p(c/c*)
+  def pCOverCStar(c: (Int, Int), cStar: (Int, Int), T: Double): Double = {
     var sum: Double = 0.0
     for (row <- 0 until AppContext.gridSize._1) {
       for (col <- 0 until AppContext.gridSize._2) {
@@ -73,5 +73,52 @@ object SOMHelper {
       }
     }
     DistributionHelper.kernel(DistributionHelper.distance(c, cStar), T) / sum
+  }
+
+  def computePX(cells: Array[Array[Cell]], pXOverC: RDD[(Long, Array[Array[Double]])], T: Double): RDD[(Long, Double)] = {
+    pXOverC.mapValues(v => {
+      var pX: Double = 0.0
+      for (rowStar <- 0 until AppContext.gridSize._1) {
+        for (colStar <- 0 until AppContext.gridSize._2) {
+
+          // get c*
+          val cStar = (rowStar, colStar)
+
+          // p(c*)
+          val pCStar = cells(rowStar)(colStar).prob
+
+          // p(x/c*)
+          var pXOverCStar: Double = 0.0
+
+          for (row <- 0 until AppContext.gridSize._1) {
+            for (col <- 0 until AppContext.gridSize._2) {
+              // get c
+              val c = (row, col)
+
+              // p(x/c)
+              val pXOverCValue = v(row)(col)
+
+              // p(c/c*)
+              val pCOverCStar = SOMHelper.pCOverCStar(c, cStar, T)
+
+              // p(x/c*) = sum p(x / c) * p(c/c*)
+              pXOverCStar += pXOverCValue * pCOverCStar
+            }
+          }
+          // p(x) = p(c*) x p(x/c*)
+          pX += pCStar * pXOverCStar
+        }
+      }
+      pX
+    })
+
+  }
+
+  def computeT(iter: Int): Double = {
+    AppContext.TMax *
+      scala.math.pow(
+        AppContext.TMin / AppContext.TMax,
+        iter / AppContext.maxIter
+      )
   }
 }

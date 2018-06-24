@@ -35,15 +35,20 @@ object Main {
 
     val cells: Array[Array[Cell]] = SOMHelper.createCells(AppContext.gridSize._1, AppContext.gridSize._2)
 
-
+    // compute p(x/c)
     val pXOverC: RDD[(Long, Array[Array[Double]])] = SOMHelper.computePXOverC(binData, contData, cells)
-    //   val a = pXBinOverC.take(3)
-    val test = pXOverC.take(3)
+
+    val T: Double = SOMHelper.computeT(2)
+
+    // compute p(x)
+    val pX : RDD[(Long, Double)] = SOMHelper.computePX(cells, pXOverC, T)
+
+    val test = pX.take(3)
 
     var iter: Int = 0
 
-    //    println(DistributionHelper.gaussian(DenseVector(80.0, 82.0), DenseVector(74.0, 81.0), 7.0))
-    //    println(DistributionHelper.hammingDistance(DenseVector(0,1,0,0,1), DenseVector(1,1,0,1,0)))
+
+
 
     while (iter < AppContext.maxIter) {
       iter += 1
