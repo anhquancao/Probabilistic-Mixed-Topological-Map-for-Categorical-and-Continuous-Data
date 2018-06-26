@@ -197,7 +197,8 @@ object SOMHelper {
     * @param contData
     * @return
     */
-  def computeContMean(pCOverX: RDD[(Long, Array[Array[Double]])], contData: RDD[(Long, Vector[Double])]): Array[Array[Vector[Double]]] = {
+  def computeContMean(pCOverX: RDD[(Long, Array[Array[Double]])],
+                      contData: RDD[(Long, Vector[Double])]): Array[Array[Vector[Double]]] = {
     val denumerator: Array[Array[Double]] = pCOverX.map(_._2).reduce((v1, v2) => {
       for (row <- 0 until AppContext.gridSize._1) {
         for (col <- 0 until AppContext.gridSize._2) {
@@ -214,6 +215,52 @@ object SOMHelper {
         yield (
           for (col <- 0 until AppContext.gridSize._2)
             yield x * p(row)(col) // x * p(c / x)
+          ).toArray
+      temp.toArray
+    }).map(_._2).reduce((v1, v2) => {
+      for (row <- 0 until AppContext.gridSize._1) {
+        for (col <- 0 until AppContext.gridSize._2) {
+          v1(row)(col) += v2(row)(col)
+        }
+      }
+      v1
+    })
+
+    val t = for (row <- 0 until AppContext.gridSize._1)
+      yield (
+        for (col <- 0 until AppContext.gridSize._2)
+          yield numerator(row)(col) / denumerator(row)(col)
+        ).toArray
+    t.toArray
+  }
+
+  /**
+    * Compute the Standard deviation for continuous variable
+    * @param pCOverX
+    * @param contData
+    * @param contMean
+    * @return
+    */
+  def computeContStd(pCOverX: RDD[(Long, Array[Array[Double]])],
+                     contData: RDD[(Long, Vector[Double])],
+                     contMean: Array[Array[Vector[Double]]]
+                    ): Array[Array[Double]] = {
+    val denumerator: Array[Array[Double]] = pCOverX.map(_._2).reduce((v1, v2) => {
+      for (row <- 0 until AppContext.gridSize._1) {
+        for (col <- 0 until AppContext.gridSize._2) {
+          v1(row)(col) += v2(row)(col)
+        }
+      }
+      v1
+    }).map(_.map(_ * AppContext.contSize))
+
+    var numerator: Array[Array[Double]] = contData.join(pCOverX).mapValues(v => {
+      val x: Vector[Double] = v._1
+      val p: Array[Array[Double]] = v._2
+      val temp = for (row <- 0 until AppContext.gridSize._1)
+        yield (
+          for (col <- 0 until AppContext.gridSize._2)
+            yield scala.math.pow(norm(contMean(row)(col) - x),2) * p(row)(col) // x * p(c / x)
           ).toArray
       temp.toArray
     }).map(_._2).reduce((v1, v2) => {

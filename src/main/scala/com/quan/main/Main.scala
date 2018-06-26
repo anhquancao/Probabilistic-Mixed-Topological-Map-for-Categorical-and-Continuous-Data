@@ -50,6 +50,10 @@ object Main {
     // compute the mean for continuous data
     val contMean: Array[Array[Vector[Double]]] = SOMHelper.computeContMean(pCOverX, contData)
 
+    // compute continuous standard deviation
+    val contStd = SOMHelper.computeContStd(pCOverX, contData, contMean)
+
+
     val test = pC
 
 
