@@ -75,6 +75,7 @@ object SOMHelper {
     DistributionHelper.kernel(DistributionHelper.distance(c, cStar), T) / sum
   }
 
+  // compute p(x)
   def computePX(cells: Array[Array[Cell]], pXOverC: RDD[(Long, Array[Array[Double]])], T: Double): RDD[(Long, Double)] = {
     pXOverC.mapValues(v => {
       var pX: Double = 0.0
@@ -114,11 +115,121 @@ object SOMHelper {
 
   }
 
+  // compute p(c/x)
+  def computePCOverX(pX: RDD[(Long, Double)],
+                     pXOverC: RDD[(Long, Array[Array[Double]])],
+                     cells: Array[Array[Cell]],
+                     T: Double): RDD[(Long, Array[Array[Double]])] = {
+    pX.join(pXOverC).map((v) => {
+      val px: Double = v._2._1
+      val pxOverC: Array[Array[Double]] = v._2._2
+
+      val temp = for (row <- 0 until AppContext.gridSize._1)
+        yield (
+          for (col <- 0 until AppContext.gridSize._2)
+            yield 0.0
+          ).toArray
+
+      val pCOverXArr: Array[Array[Double]] = temp.toArray
+
+      for (row <- 0 until AppContext.gridSize._1) {
+        for (col <- 0 until AppContext.gridSize._2) {
+
+          // get c*
+          val c = (row, col)
+
+          for (rowStar <- 0 until AppContext.gridSize._1) {
+            for (colStar <- 0 until AppContext.gridSize._2) {
+
+              // get c*
+              val cStar = (rowStar, colStar)
+
+              val pCStar: Double = cells(rowStar)(colStar).prob
+
+
+              // p(c/c*)
+              val pCOverCStar: Double = SOMHelper.pCOverCStar(c, cStar, T)
+
+              // p(c, c*/ x)
+              val pCAndCStar: Double = (pCOverCStar * pCStar * pxOverC(row)(col)) / px
+
+              pCOverXArr(row)(col) += pCAndCStar
+
+            }
+          }
+
+        }
+      }
+      (v._1, pCOverXArr)
+    })
+  }
+
+  /**
+    * p(c)
+    *
+    * @param pCOverX
+    * @return
+    */
+  def computePC(pCOverX: RDD[(Long, Array[Array[Double]])]): Array[Array[Double]] = {
+    val t = pCOverX.map(_._2).reduce((v1, v2) => {
+      for (row <- 0 until AppContext.gridSize._1) {
+        for (col <- 0 until AppContext.gridSize._2) {
+          v1(row)(col) += v2(row)(col)
+        }
+      }
+      v1
+    })
+    t.map(_.map(_ / AppContext.numberCells))
+  }
+
   def computeT(iter: Int): Double = {
     AppContext.TMax *
       scala.math.pow(
         AppContext.TMin / AppContext.TMax,
         iter / AppContext.maxIter
       )
+  }
+
+  /**
+    * compute the mean for continuous data w(c)
+    *
+    * @param pCOverX
+    * @param contData
+    * @return
+    */
+  def computeContMean(pCOverX: RDD[(Long, Array[Array[Double]])], contData: RDD[(Long, Vector[Double])]): Array[Array[Vector[Double]]] = {
+    val denumerator: Array[Array[Double]] = pCOverX.map(_._2).reduce((v1, v2) => {
+      for (row <- 0 until AppContext.gridSize._1) {
+        for (col <- 0 until AppContext.gridSize._2) {
+          v1(row)(col) += v2(row)(col)
+        }
+      }
+      v1
+    })
+
+    var numerator: Array[Array[Vector[Double]]] = contData.join(pCOverX).mapValues(v => {
+      val x: Vector[Double] = v._1
+      val p: Array[Array[Double]] = v._2
+      val temp = for (row <- 0 until AppContext.gridSize._1)
+        yield (
+          for (col <- 0 until AppContext.gridSize._2)
+            yield x * p(row)(col) // x * p(c / x)
+          ).toArray
+      temp.toArray
+    }).map(_._2).reduce((v1, v2) => {
+      for (row <- 0 until AppContext.gridSize._1) {
+        for (col <- 0 until AppContext.gridSize._2) {
+          v1(row)(col) += v2(row)(col)
+        }
+      }
+      v1
+    })
+
+    val t = for (row <- 0 until AppContext.gridSize._1)
+      yield (
+        for (col <- 0 until AppContext.gridSize._2)
+          yield numerator(row)(col) / denumerator(row)(col)
+        ).toArray
+    t.toArray
   }
 }

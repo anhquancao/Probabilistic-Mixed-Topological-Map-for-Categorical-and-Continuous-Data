@@ -12,7 +12,8 @@ object AppContext {
   var contSize: Int = 0
   var binSize: Int = 0
   var dataSize:Long = 0
-  var gridSize: (Int, Int) = (10, 10) // (num_rows, num_cols)
+  var gridSize: (Int, Int) = (5, 5) // (num_rows, num_cols)
+  val numberCells = 25
   val TMax: Int = 10
   val TMin: Int = 1
   val maxIter: Int = 10

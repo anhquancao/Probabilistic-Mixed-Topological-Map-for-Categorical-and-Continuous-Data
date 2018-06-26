@@ -11,8 +11,6 @@ import org.apache.spark.rdd.RDD
 object Main {
 
 
-
-
   def main(args: Array[String]): Unit = {
 
     Logger.getLogger("org").setLevel(Level.ERROR)
@@ -41,13 +39,21 @@ object Main {
     val T: Double = SOMHelper.computeT(2)
 
     // compute p(x)
-    val pX : RDD[(Long, Double)] = SOMHelper.computePX(cells, pXOverC, T)
+    val pX: RDD[(Long, Double)] = SOMHelper.computePX(cells, pXOverC, T)
 
-    val test = pX.take(3)
+    // compute p(c/x)
+    val pCOverX: RDD[(Long, Array[Array[Double]])] = SOMHelper.computePCOverX(pX, pXOverC, cells, T)
+
+    // compute p(c) from p(c/x)
+    val pC: Array[Array[Double]] = SOMHelper.computePC(pCOverX)
+
+    // compute the mean for continuous data
+    val contMean: Array[Array[Vector[Double]]] = SOMHelper.computeContMean(pCOverX, contData)
+
+    val test = pC
+
 
     var iter: Int = 0
-
-
 
 
     while (iter < AppContext.maxIter) {
