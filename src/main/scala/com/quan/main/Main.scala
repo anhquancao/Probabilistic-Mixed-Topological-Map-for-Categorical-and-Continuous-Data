@@ -45,16 +45,34 @@ object Main {
     val pCOverX: RDD[(Long, Array[Array[Double]])] = SOMHelper.computePCOverX(pX, pXOverC, cells, T)
 
     // compute p(c) from p(c/x)
-    val pC: Array[Array[Double]] = SOMHelper.computePC(pCOverX)
+    //    val pC: Array[Array[Double]] = SOMHelper.computePC(pCOverX)
 
     // compute the mean for continuous data
-    val contMean: Array[Array[Vector[Double]]] = SOMHelper.computeContMean(pCOverX, contData)
+    //    val contMean: Array[Array[Vector[Double]]] = SOMHelper.computeContMean(pCOverX, contData)
 
     // compute continuous standard deviation
-    val contStd = SOMHelper.computeContStd(pCOverX, contData, contMean)
+    //    val contStd = SOMHelper.computeContStd(pCOverX, contData, contMean)
 
 
-    val test = pC
+    val leftPart: Array[Array[Vector[Double]]] = pCOverX.join(binData).map(v => {
+      val x: Vector[Double] = new DenseVector[Double](v._2._2.toArray.map(_.toDouble))
+      val pC: Array[Array[Double]] = v._2._1
+      val temp = for (row <- 0 until AppContext.gridSize._1)
+        yield (
+          for (col <- 0 until AppContext.gridSize._2)
+            yield (1.0 - x) * pC(row)(col)
+          ).toArray
+      temp.toArray
+    }).reduce((v1, v2) => {
+      for (row <- 0 until AppContext.gridSize._1) {
+        for (col <- 0 until AppContext.gridSize._2) {
+          v1(row)(col) += v2(row)(col)
+        }
+      }
+      v1
+    })
+
+    val test = leftPart.take(2)
 
 
     var iter: Int = 0
