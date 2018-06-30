@@ -9,9 +9,8 @@ import com.quan.util.{DistributionHelper, RandomHelper}
   * @param rowI
   * @param colI
   */
-class Cell(val rowI: Int, val colI: Int) extends Serializable {
+class Cell(val rowI: Int, val colI: Int, val contSize: Int, val binSize: Int, var prob: Double) extends Serializable {
   val col: Int = colI
-  var prob: Double = 1.0 / (AppContext.gridSize._1 * AppContext.gridSize._2)
   var row: Int = rowI
   var pXContOverC: Double = 0
   var pXBinOverC: Double = 0
@@ -20,10 +19,10 @@ class Cell(val rowI: Int, val colI: Int) extends Serializable {
 
   // continuous parameters
   var contStd: Double = AppContext.getRandom.nextDouble
-  var contMean: Vector[Double] = RandomHelper.createRandomDoubleVector(AppContext.contSize)
+  var contMean: Vector[Double] = RandomHelper.createRandomDoubleVector(contSize)
 
   // binary parameters
-  var binMean: Vector[Int] = RandomHelper.createRandomBinaryVector(AppContext.binSize)
+  var binMean: Vector[Int] = RandomHelper.createRandomBinaryVector(binSize)
   var binEpsilon: Double = AppContext.getRandom.nextDouble() / 2
 
 }

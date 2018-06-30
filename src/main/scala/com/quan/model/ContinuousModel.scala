@@ -1,16 +1,15 @@
 package com.quan.model
 
 import breeze.linalg._
-import com.quan.context.AppContext
 import com.quan.util.DistributionHelper
 import org.apache.spark.rdd.RDD
 
-object ContinuousModel {
+class ContinuousModel(val numRows: Int, val numCols: Int) extends Serializable {
   def pXOverC(contData: RDD[(Long, Vector[Double])], cells: Array[Array[Cell]]): RDD[(Long, Array[Array[Double]])] = {
     contData.mapValues(x => {
-      val temp = for (row <- 0 until AppContext.gridSize._1)
+      val temp = for (row <- 0 until numRows)
         yield (
-          for (col <- 0 until AppContext.gridSize._2)
+          for (col <- 0 until numCols)
             yield DistributionHelper.gaussian(x, cells(row)(col).contMean, cells(row)(col).contStd)
           ).toArray
       temp.toArray
@@ -27,8 +26,8 @@ object ContinuousModel {
   def mean(pCOverX: RDD[(Long, Array[Array[Double]])],
            contData: RDD[(Long, Vector[Double])]): Array[Array[Vector[Double]]] = {
     val denumerator: Array[Array[Double]] = pCOverX.map(_._2).reduce((v1, v2) => {
-      for (row <- 0 until AppContext.gridSize._1) {
-        for (col <- 0 until AppContext.gridSize._2) {
+      for (row <- 0 until numRows) {
+        for (col <- 0 until numCols) {
           v1(row)(col) += v2(row)(col)
         }
       }
@@ -38,24 +37,24 @@ object ContinuousModel {
     var numerator: Array[Array[Vector[Double]]] = contData.join(pCOverX).mapValues(v => {
       val x: Vector[Double] = v._1
       val p: Array[Array[Double]] = v._2
-      val temp = for (row <- 0 until AppContext.gridSize._1)
+      val temp = for (row <- 0 until numRows)
         yield (
-          for (col <- 0 until AppContext.gridSize._2)
+          for (col <- 0 until numCols)
             yield x * p(row)(col) // x * p(c / x)
           ).toArray
       temp.toArray
     }).map(_._2).reduce((v1, v2) => {
-      for (row <- 0 until AppContext.gridSize._1) {
-        for (col <- 0 until AppContext.gridSize._2) {
+      for (row <- 0 until numRows) {
+        for (col <- 0 until numCols) {
           v1(row)(col) += v2(row)(col)
         }
       }
       v1
     })
 
-    val t = for (row <- 0 until AppContext.gridSize._1)
+    val t = for (row <- 0 until numRows)
       yield (
-        for (col <- 0 until AppContext.gridSize._2)
+        for (col <- 0 until numCols)
           yield numerator(row)(col) / denumerator(row)(col)
         ).toArray
     t.toArray
@@ -71,38 +70,39 @@ object ContinuousModel {
     */
   def std(pCOverX: RDD[(Long, Array[Array[Double]])],
           contData: RDD[(Long, Vector[Double])],
-          contMean: Array[Array[Vector[Double]]]
-                    ): Array[Array[Double]] = {
+          contMean: Array[Array[Vector[Double]]],
+          contSize: Int
+         ): Array[Array[Double]] = {
     val denumerator: Array[Array[Double]] = pCOverX.map(_._2).reduce((v1, v2) => {
-      for (row <- 0 until AppContext.gridSize._1) {
-        for (col <- 0 until AppContext.gridSize._2) {
+      for (row <- 0 until numRows) {
+        for (col <- 0 until numCols) {
           v1(row)(col) += v2(row)(col)
         }
       }
       v1
-    }).map(_.map(_ * AppContext.contSize))
+    }).map(_.map(_ * contSize))
 
     var numerator: Array[Array[Double]] = contData.join(pCOverX).mapValues(v => {
       val x: Vector[Double] = v._1
       val p: Array[Array[Double]] = v._2
-      val temp = for (row <- 0 until AppContext.gridSize._1)
+      val temp = for (row <- 0 until numRows)
         yield (
-          for (col <- 0 until AppContext.gridSize._2)
+          for (col <- 0 until numCols)
             yield scala.math.pow(norm(contMean(row)(col) - x), 2) * p(row)(col) // x * p(c / x)
           ).toArray
       temp.toArray
     }).map(_._2).reduce((v1, v2) => {
-      for (row <- 0 until AppContext.gridSize._1) {
-        for (col <- 0 until AppContext.gridSize._2) {
+      for (row <- 0 until numRows) {
+        for (col <- 0 until numCols) {
           v1(row)(col) += v2(row)(col)
         }
       }
       v1
     })
 
-    val t = for (row <- 0 until AppContext.gridSize._1)
+    val t = for (row <- 0 until numRows)
       yield (
-        for (col <- 0 until AppContext.gridSize._2)
+        for (col <- 0 until numCols)
           yield numerator(row)(col) / denumerator(row)(col)
         ).toArray
     t.toArray

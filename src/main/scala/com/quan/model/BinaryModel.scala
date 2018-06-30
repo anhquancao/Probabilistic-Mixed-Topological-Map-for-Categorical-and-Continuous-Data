@@ -1,16 +1,15 @@
 package com.quan.model
 
 import breeze.linalg._
-import com.quan.context.AppContext
 import com.quan.util.DistributionHelper
 import org.apache.spark.rdd.RDD
 
-object BinaryModel {
+class BinaryModel(val numRows: Int, val numCols: Int) extends Serializable {
   def pXOverC(binData: RDD[(Long, Vector[Int])], cells: Array[Array[Cell]]): RDD[(Long, Array[Array[Double]])] = {
     binData.mapValues(x => {
-      val temp = for (row <- 0 until AppContext.gridSize._1)
+      val temp = for (row <- 0 until numRows)
         yield (
-          for (col <- 0 until AppContext.gridSize._2)
+          for (col <- 0 until numCols)
             yield DistributionHelper.bernouli(x, cells(row)(col).binMean, cells(row)(col).binEpsilon)
           ).toArray
       temp.toArray
@@ -55,7 +54,9 @@ object BinaryModel {
 
   def std(pCOverX: RDD[(Long, Array[Array[Double]])],
           binMean: Array[Array[DenseVector[Int]]],
-          binData: RDD[(Long, Vector[Int])]): Array[Array[Double]] = {
+          binData: RDD[(Long, Vector[Int])],
+          binSize: Int
+         ): Array[Array[Double]] = {
     val numerator: Array[Array[Double]] = pCOverX.join(binData).map { case (i, data: (Array[Array[Double]], Vector[Int])) => {
       val pC: Array[Array[Double]] = data._1
       val x: Vector[Int] = data._2
@@ -75,7 +76,7 @@ object BinaryModel {
 
     val denumerator: Array[Array[Double]] = pCOverX.map {
       case (index: Long, data: Array[Array[Double]]) => {
-        data.map(_.map(_ * AppContext.binSize))
+        data.map(_.map(_ * binSize))
       }
     }.reduce {
       case (v1: Array[Array[Double]], v2: Array[Array[Double]]) => {
