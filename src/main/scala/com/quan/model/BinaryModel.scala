@@ -6,6 +6,7 @@ import org.apache.spark.rdd.RDD
 
 class BinaryModel(val numRows: Int, val numCols: Int) extends Serializable {
   def pXOverC(binData: RDD[(Long, Vector[Int])], cells: Array[Array[Cell]]): RDD[(Long, Array[Array[Double]])] = {
+    println("Bin Model: pXOverC")
     binData.mapValues(x => {
       val temp = for (row <- 0 until numRows)
         yield (
@@ -17,6 +18,7 @@ class BinaryModel(val numRows: Int, val numCols: Int) extends Serializable {
   }
 
   def mean(pCOverX: RDD[(Long, Array[Array[Double]])], binData: RDD[(Long, Vector[Int])]): Array[Array[DenseVector[Int]]] = {
+    println("Bin Model: mean")
     val leftAndRightParts = pCOverX.join(binData).map(v => {
       val x: Vector[Double] = new DenseVector[Double](v._2._2.toArray.map(_.toDouble))
       val pC: Array[Array[Double]] = v._2._1
@@ -57,6 +59,7 @@ class BinaryModel(val numRows: Int, val numCols: Int) extends Serializable {
           binData: RDD[(Long, Vector[Int])],
           binSize: Int
          ): Array[Array[Double]] = {
+    println("Bin Model: std")
     val numerator: Array[Array[Double]] = pCOverX.join(binData).map { case (i, data: (Array[Array[Double]], Vector[Int])) => {
       val pC: Array[Array[Double]] = data._1
       val x: Vector[Int] = data._2

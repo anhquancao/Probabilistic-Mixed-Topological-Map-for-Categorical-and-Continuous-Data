@@ -6,6 +6,7 @@ import org.apache.spark.rdd.RDD
 
 class ContinuousModel(val numRows: Int, val numCols: Int) extends Serializable {
   def pXOverC(contData: RDD[(Long, Vector[Double])], cells: Array[Array[Cell]]): RDD[(Long, Array[Array[Double]])] = {
+    println("Cont Model: pXOverC")
     contData.mapValues(x => {
       val temp = for (row <- 0 until numRows)
         yield (
@@ -25,6 +26,8 @@ class ContinuousModel(val numRows: Int, val numCols: Int) extends Serializable {
     */
   def mean(pCOverX: RDD[(Long, Array[Array[Double]])],
            contData: RDD[(Long, Vector[Double])]): Array[Array[Vector[Double]]] = {
+    println("Cont Model: mean")
+
     val denumerator: Array[Array[Double]] = pCOverX.map(_._2).reduce((v1, v2) => {
       for (row <- 0 until numRows) {
         for (col <- 0 until numCols) {
@@ -73,6 +76,7 @@ class ContinuousModel(val numRows: Int, val numCols: Int) extends Serializable {
           contMean: Array[Array[Vector[Double]]],
           contSize: Int
          ): Array[Array[Double]] = {
+    println("Cont Model: std")
     val denumerator: Array[Array[Double]] = pCOverX.map(_._2).reduce((v1, v2) => {
       for (row <- 0 until numRows) {
         for (col <- 0 until numCols) {

@@ -8,11 +8,15 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
 
   val binaryModel = new BinaryModel(numRows, numCols)
   val continuousModel = new ContinuousModel(numRows, numCols)
+
   /**
     *
     * @return
     */
   def createCells(contSize: Int, binSize: Int): Array[Array[Cell]] = {
+
+    println("Mixed mode: Create cells")
+
     val prob = 1.0 / (numCols * numRows)
     val temp = for (row <- 0 to numRows)
       yield (
@@ -23,6 +27,9 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
   }
 
   def pXOverC(binData: RDD[(Long, Vector[Int])], contData: RDD[(Long, Vector[Double])], cells: Array[Array[Cell]]): RDD[(Long, Array[Array[Double]])] = {
+
+    println("Mixed model: Compute pXOverC")
+
     // compute the bernouli of x over c
     val pXBinOverC: RDD[(Long, Array[Array[Double]])] = this.binaryModel.pXOverC(binData, cells)
 
@@ -42,20 +49,27 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
     pXOverC
   }
 
+//  var count = 0
+
   // compute p(c/c*)
   def pCOverCStar(c: (Int, Int), cStar: (Int, Int), T: Double): Double = {
-    var sum: Double = 0.0
+//    count += 1
+//    println("Mixed model: Compute pCOverCStar " + count)
+    var pCOverCStartSum = 0.0
     for (row <- 0 until numRows) {
       for (col <- 0 until numCols) {
         val r = (row, col)
-        sum = sum + DistributionHelper.kernel(DistributionHelper.distance(cStar, r), T)
+        pCOverCStartSum = pCOverCStartSum + DistributionHelper.kernel(DistributionHelper.distance(cStar, r), T)
       }
     }
-    DistributionHelper.kernel(DistributionHelper.distance(c, cStar), T) / sum
+
+    DistributionHelper.kernel(DistributionHelper.distance(c, cStar), T) / pCOverCStartSum
   }
+
 
   // compute p(x)
   def pX(cells: Array[Array[Cell]], pXOverC: RDD[(Long, Array[Array[Double]])], T: Double): RDD[(Long, Double)] = {
+    println("Mixed model: Compute pX")
     pXOverC.mapValues(v => {
       var pX: Double = 0.0
       for (rowStar <- 0 until numRows) {
@@ -98,6 +112,8 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
               pXOverC: RDD[(Long, Array[Array[Double]])],
               cells: Array[Array[Cell]],
               T: Double): RDD[(Long, Array[Array[Double]])] = {
+
+    println("Mixed model: Compute pCOverX")
     pX.join(pXOverC).map(v => {
       val px: Double = v._2._1
       val pxOverC: Array[Array[Double]] = v._2._2
@@ -149,6 +165,7 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
     * @return
     */
   def pC(pCOverX: RDD[(Long, Array[Array[Double]])]): Array[Array[Double]] = {
+    println("Mixed model: Compute pC")
     val t = pCOverX.map(_._2).reduce((v1, v2) => {
       for (row <- 0 until numRows) {
         for (col <- 0 until numCols) {
@@ -161,6 +178,7 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
   }
 
   def getT(iteration: Int, maxIteration: Int): Double = {
+    println("Mixed model: Compute T")
     TMax *
       scala.math.pow(
         TMin / TMax,
@@ -189,7 +207,7 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
       // compute p(x/c)
       val pXOverC: RDD[(Long, Array[Array[Double]])] = this.pXOverC(binData, contData, cells)
 
-//      val test = pXOverC.take(2)
+      //      val test = pXOverC.take(2)
 
 
       // compute p(x)
@@ -212,7 +230,7 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
 
       val binStd = this.binaryModel.std(pCOverX, binMean, binData, binSize)
 
-      //
+      val a = 2
 
     }
   }
