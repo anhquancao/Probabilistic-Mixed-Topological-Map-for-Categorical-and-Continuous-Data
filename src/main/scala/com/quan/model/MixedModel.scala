@@ -49,12 +49,12 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
     pXOverC
   }
 
-//  var count = 0
+  //  var count = 0
 
   // compute p(c/c*)
   def pCOverCStar(c: (Int, Int), cStar: (Int, Int), T: Double): Double = {
-//    count += 1
-//    println("Mixed model: Compute pCOverCStar " + count)
+    //    count += 1
+    //    println("Mixed model: Compute pCOverCStar " + count)
     var pCOverCStartSum = 0.0
     for (row <- 0 until numRows) {
       for (col <- 0 until numCols) {
@@ -189,7 +189,7 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
   def train(binData: RDD[(Long, Vector[Int])],
             contData: RDD[(Long, Vector[Double])],
             maxIteration: Int = 10
-           ) = {
+           ): Array[Array[Cell]] = {
     var iteration: Int = 0
 
     val contSize = contData.take(1)(0)._2.size
@@ -202,13 +202,14 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
     while (iteration < maxIteration) {
       iteration += 1
 
+      println("Iteration: " + iteration)
+
       val T: Double = getT(iteration, maxIteration)
 
       // compute p(x/c)
       val pXOverC: RDD[(Long, Array[Array[Double]])] = this.pXOverC(binData, contData, cells)
 
       //      val test = pXOverC.take(2)
-
 
       // compute p(x)
       val pX: RDD[(Long, Double)] = this.pX(cells, pXOverC, T)
@@ -230,8 +231,16 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
 
       val binStd = this.binaryModel.std(pCOverX, binMean, binData, binSize)
 
-      val a = 2
-
+      for (row <- 0 until numRows) {
+        for (col <- 0 until numCols) {
+          cells(row)(col).contMean = contMean(row)(col)
+          cells(row)(col).contStd = contStd(row)(col)
+          cells(row)(col).binMean = binMean(row)(col)
+          cells(row)(col).binStd = binStd(row)(col)
+          cells(row)(col).prob = pC(row)(col)
+        }
+      }
     }
+    cells
   }
 }

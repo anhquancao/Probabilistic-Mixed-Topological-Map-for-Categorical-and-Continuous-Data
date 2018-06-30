@@ -11,7 +11,7 @@ class BinaryModel(val numRows: Int, val numCols: Int) extends Serializable {
       val temp = for (row <- 0 until numRows)
         yield (
           for (col <- 0 until numCols)
-            yield DistributionHelper.bernouli(x, cells(row)(col).binMean, cells(row)(col).binEpsilon)
+            yield DistributionHelper.bernouli(x, cells(row)(col).binMean, cells(row)(col).binStd)
           ).toArray
       temp.toArray
     })

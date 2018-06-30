@@ -1,7 +1,7 @@
 package com.quan.main
 
 import breeze.linalg._
-import com.quan.model.{MixedModel}
+import com.quan.model.{Cell, MixedModel}
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.rdd.RDD
 
@@ -27,6 +27,7 @@ object Main {
     val contData: RDD[(Long, Vector[Double])] = r.zipWithIndex().map(t => (t._2, t._1))
 
     val model = new MixedModel(5, 5)
-    model.train(binData, contData)
+    val cells: Array[Array[Cell]] = model.train(binData, contData)
+    val test = 1
   }
 }
