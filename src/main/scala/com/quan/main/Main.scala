@@ -54,26 +54,9 @@ object Main {
     //    val contStd = SOMHelper.computeContStd(pCOverX, contData, contMean)
 
 
-    val leftPart: Array[Array[Vector[Double]]] = pCOverX.join(binData).map(v => {
-      val x: Vector[Double] = new DenseVector[Double](v._2._2.toArray.map(_.toDouble))
-      val pC: Array[Array[Double]] = v._2._1
-      val temp = for (row <- 0 until AppContext.gridSize._1)
-        yield (
-          for (col <- 0 until AppContext.gridSize._2)
-            yield (1.0 - x) * pC(row)(col)
-          ).toArray
-      temp.toArray
-    }).reduce((v1, v2) => {
-      for (row <- 0 until AppContext.gridSize._1) {
-        for (col <- 0 until AppContext.gridSize._2) {
-          v1(row)(col) += v2(row)(col)
-        }
-      }
-      v1
-    })
+    val binMean: Array[Array[DenseVector[Int]]] = SOMHelper.computeBinMean(pCOverX, binData)
 
-    val test = leftPart.take(2)
-
+    val binStd = SOMHelper.computeBinStd(pCOverX, binMean, binData)
 
     var iter: Int = 0
 
