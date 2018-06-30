@@ -2,8 +2,8 @@ package com.quan.main
 
 import breeze.linalg._
 import com.quan.context.AppContext
-import com.quan.model.Cell
-import com.quan.util.{DistributionHelper, RandomHelper, SOMHelper}
+import com.quan.model.{BinaryModel, Cell, ContinuousModel, MixedModel}
+import com.quan.util.{DistributionHelper, RandomHelper}
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.rdd.RDD
 
@@ -31,32 +31,32 @@ object Main {
     AppContext.dataSize = b.count()
     AppContext.pX = RandomHelper.createRandomDoubleVector(AppContext.dataSize)
 
-    val cells: Array[Array[Cell]] = SOMHelper.createCells(AppContext.gridSize._1, AppContext.gridSize._2)
+    val cells: Array[Array[Cell]] = MixedModel.createCells(AppContext.gridSize._1, AppContext.gridSize._2)
 
     // compute p(x/c)
-    val pXOverC: RDD[(Long, Array[Array[Double]])] = SOMHelper.computePXOverC(binData, contData, cells)
+    val pXOverC: RDD[(Long, Array[Array[Double]])] = MixedModel.pXOverC(binData, contData, cells)
 
-    val T: Double = SOMHelper.computeT(2)
+    val T: Double = MixedModel.T(2)
 
     // compute p(x)
-    val pX: RDD[(Long, Double)] = SOMHelper.computePX(cells, pXOverC, T)
+    val pX: RDD[(Long, Double)] = MixedModel.pX(cells, pXOverC, T)
 
     // compute p(c/x)
-    val pCOverX: RDD[(Long, Array[Array[Double]])] = SOMHelper.computePCOverX(pX, pXOverC, cells, T)
+    val pCOverX: RDD[(Long, Array[Array[Double]])] = MixedModel.pCOverX(pX, pXOverC, cells, T)
 
     // compute p(c) from p(c/x)
-    //    val pC: Array[Array[Double]] = SOMHelper.computePC(pCOverX)
+    val pC: Array[Array[Double]] = MixedModel.pC(pCOverX)
 
     // compute the mean for continuous data
-    //    val contMean: Array[Array[Vector[Double]]] = SOMHelper.computeContMean(pCOverX, contData)
+    val contMean: Array[Array[Vector[Double]]] = ContinuousModel.mean(pCOverX, contData)
 
     // compute continuous standard deviation
-    //    val contStd = SOMHelper.computeContStd(pCOverX, contData, contMean)
+    val contStd = ContinuousModel.std(pCOverX, contData, contMean)
 
 
-    val binMean: Array[Array[DenseVector[Int]]] = SOMHelper.computeBinMean(pCOverX, binData)
+    val binMean: Array[Array[DenseVector[Int]]] = BinaryModel.mean(pCOverX, binData)
 
-    val binStd = SOMHelper.computeBinStd(pCOverX, binMean, binData)
+    val binStd = BinaryModel.std(pCOverX, binMean, binData)
 
     var iter: Int = 0
 
