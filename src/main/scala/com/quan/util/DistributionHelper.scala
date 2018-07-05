@@ -10,9 +10,14 @@ object DistributionHelper {
   }
 
   def normalLog(x: Vector[Double], mean: Vector[Double], std: Double): Double = {
+    var stdVar = std
+    val zero = 1.0e-38
+    if (!(std * std > 0)) {
+      stdVar = zero
+    }
     val diffVec = x - mean
     val normValue = norm(diffVec)
-    val res = -x.size / 2 * scala.math.log(2 * std * scala.math.Pi) - 0.5 * scala.math.pow(normValue / std, 2.0)
+    val res = -x.size / 2 * scala.math.log(2 * scala.math.Pi) - x.size / 2 * scala.math.log(stdVar) - 0.5 * scala.math.pow(normValue / stdVar, 2.0)
     res
   }
 
