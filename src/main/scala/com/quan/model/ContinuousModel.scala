@@ -5,13 +5,16 @@ import com.quan.util.DistributionHelper
 import org.apache.spark.rdd.RDD
 
 class ContinuousModel(val numRows: Int, val numCols: Int) extends Serializable {
-  def pXOverC(contData: RDD[(Long, Vector[Double])], cells: Array[Array[Cell]]): RDD[(Long, Array[Array[Double]])] = {
+  def pXOverC(
+               contData: RDD[(Long, Vector[Double])],
+               cells: Array[Array[Cell]]):
+  RDD[(Long, Array[Array[Double]])] = {
     println("Cont Model: pXOverC")
     contData.mapValues(x => {
       val temp = for (row <- 0 until numRows)
         yield (
           for (col <- 0 until numCols)
-            yield DistributionHelper.gaussian(x, cells(row)(col).contMean, cells(row)(col).contStd)
+            yield DistributionHelper.normalLog(x, cells(row)(col).contMean, cells(row)(col).contStd)
           ).toArray
       temp.toArray
     })
@@ -27,6 +30,8 @@ class ContinuousModel(val numRows: Int, val numCols: Int) extends Serializable {
   def mean(pCOverX: RDD[(Long, Array[Array[Double]])],
            contData: RDD[(Long, Vector[Double])]): Array[Array[Vector[Double]]] = {
     println("Cont Model: mean")
+
+    val v = pCOverX.collect()
 
     val denumerator: Array[Array[Double]] = pCOverX.map(_._2).reduce((v1, v2) => {
       for (row <- 0 until numRows) {

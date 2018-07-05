@@ -1,7 +1,7 @@
 package com.quan.model
 
 import breeze.linalg._
-import com.quan.util.DistributionHelper
+import com.quan.util.{DistributionHelper, RandomHelper}
 import org.apache.spark.rdd.RDD
 
 class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) extends Serializable {
@@ -13,15 +13,22 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
     *
     * @return
     */
-  def createCells(contSize: Int, binSize: Int): Array[Array[Cell]] = {
+  def createCells(contSize: Int, binSize: Int,
+                  binData: RDD[(Long, Vector[Int])],
+                  contData: RDD[(Long, Vector[Double])]): Array[Array[Cell]] = {
 
     println("Mixed mode: Create cells")
+
+    //    var contMean: Vector[Double] = contData.map(_._2).reduce((v1, v2) => v1 + v2).map(_ / contSize)
+    var contMean: Vector[Double] = RandomHelper.createRandomDoubleVector(contSize)
+
+    var binMean: Vector[Int] = RandomHelper.createRandomBinaryVector(binSize)
 
     val prob = 1.0 / (numCols * numRows)
     val temp = for (row <- 0 to numRows)
       yield (
         for (col <- 0 to numCols)
-          yield new Cell(row, col, contSize, binSize, prob)
+          yield new Cell(row, col, contSize, binSize, prob, contMean, binMean)
         ).toArray
     temp.toArray
   }
@@ -31,17 +38,37 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
     println("Mixed model: Compute pXOverC")
 
     // compute the bernouli of x over c
-    val pXBinOverC: RDD[(Long, Array[Array[Double]])] = this.binaryModel.pXOverC(binData, cells)
+    val logPXBinOverC: RDD[(Long, Array[Array[Double]])] = this.binaryModel.pXOverC(binData, cells)
 
     // compute gaussian
-    val pXContOverC: RDD[(Long, Array[Array[Double]])] = this.continuousModel.pXOverC(contData, cells)
+    val logPXContOverC: RDD[(Long, Array[Array[Double]])] = this.continuousModel.pXOverC(contData, cells)
+
+    val a = logPXContOverC.map(_._2).reduce((v1, v2) => {
+      for (row <- 0 until numRows) {
+        for (col <- 0 until numCols) {
+          v1(row)(col) = v1(row)(col)
+        }
+      }
+      v1
+    })
+
+    val b = logPXBinOverC.map(_._2).reduce((v1, v2) => {
+      for (row <- 0 until numRows) {
+        for (col <- 0 until numCols) {
+          v1(row)(col) = v1(row)(col)
+        }
+      }
+      v1
+    })
+
+    //    val b = pXBinOverC.take(3)
 
     // compute the p(x/c)
-    val pXOverC = pXBinOverC.join(pXContOverC).map((p: (Long, (Array[Array[Double]], Array[Array[Double]]))) => {
+    val pXOverC = logPXBinOverC.join(logPXContOverC).map((p: (Long, (Array[Array[Double]], Array[Array[Double]]))) => {
       val temp = for (row <- 0 until numRows)
         yield (
           for (col <- 0 until numCols)
-            yield p._2._1(row)(col) * p._2._2(row)(col)
+            yield p._2._1(row)(col) + p._2._2(row)(col)
           ).toArray
       (p._1, temp.toArray)
     })
@@ -50,7 +77,6 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
   }
 
   //  var count = 0
-
   // compute p(c/c*)
   def pCOverCStar(c: (Int, Int), cStar: (Int, Int), T: Double): Double = {
     //    count += 1
@@ -96,7 +122,8 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
               val pCOverCStar = this.pCOverCStar(c, cStar, T)
 
               // p(x/c*) = sum p(x / c) * p(c/c*)
-              pXOverCStar += pXOverCValue * pCOverCStar
+              val logVal = pXOverCValue + scala.math.log(pCOverCStar)
+              pXOverCStar += scala.math.exp(logVal)
             }
           }
           // p(x) = p(c*) x p(x/c*)
@@ -109,13 +136,13 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
 
   // compute p(c/x)
   def pCOverX(pX: RDD[(Long, Double)],
-              pXOverC: RDD[(Long, Array[Array[Double]])],
+              logPXOverC: RDD[(Long, Array[Array[Double]])],
               cells: Array[Array[Cell]],
               T: Double): RDD[(Long, Array[Array[Double]])] = {
 
     println("Mixed model: Compute pCOverX")
-    pX.join(pXOverC).map(v => {
-      val px: Double = v._2._1
+    pX.join(logPXOverC).map(v => {
+      val logPX: Double = v._2._1
       val pxOverC: Array[Array[Double]] = v._2._2
 
       val temp = for (row <- 0 until numRows)
@@ -145,9 +172,9 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
               val pCOverCStar: Double = this.pCOverCStar(c, cStar, T)
 
               // p(c, c*/ x)
-              val pCAndCStar: Double = (pCOverCStar * pCStar * pxOverC(row)(col)) / px
+              val logPCAndCStar: Double = scala.math.log(pCOverCStar) + scala.math.log(pCStar) + scala.math.log(pxOverC(row)(col)) - logPX
 
-              pCOverXArr(row)(col) += pCAndCStar
+              pCOverXArr(row)(col) += scala.math.exp(logPCAndCStar)
 
             }
           }
@@ -196,7 +223,7 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
     val binSize = binData.take(1)(0)._2.size
 
     var cells: Array[Array[Cell]] =
-      createCells(contSize, binSize)
+      createCells(contSize, binSize, binData, contData)
 
 
     while (iteration < maxIteration) {
@@ -207,15 +234,14 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
       val T: Double = getT(iteration, maxIteration)
 
       // compute p(x/c)
-      val pXOverC: RDD[(Long, Array[Array[Double]])] = this.pXOverC(binData, contData, cells)
+      val logPXOverC: RDD[(Long, Array[Array[Double]])] = this.pXOverC(binData, contData, cells)
 
-      //      val test = pXOverC.take(2)
-
+      val t = logPXOverC.collect()
       // compute p(x)
-      val pX: RDD[(Long, Double)] = this.pX(cells, pXOverC, T)
+      val pX: RDD[(Long, Double)] = this.pX(cells, logPXOverC, T)
 
       // compute p(c/x)
-      val pCOverX: RDD[(Long, Array[Array[Double]])] = this.pCOverX(pX, pXOverC, cells, T)
+      val pCOverX: RDD[(Long, Array[Array[Double]])] = this.pCOverX(pX, logPXOverC, cells, T)
 
       // compute p(c) from p(c/x)
       val pC: Array[Array[Double]] = this.pC(pCOverX)
@@ -240,6 +266,7 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
           cells(row)(col).prob = pC(row)(col)
         }
       }
+
     }
     cells
   }

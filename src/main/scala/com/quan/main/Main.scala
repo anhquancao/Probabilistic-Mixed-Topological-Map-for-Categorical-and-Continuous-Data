@@ -13,10 +13,10 @@ object Main {
 
     Logger.getLogger("org").setLevel(Level.ERROR)
 
-    val r: RDD[Vector[Double]] = Reader.read("src/resources/mfeat-kar.txt", "[ \t]+")
+    val r: RDD[Vector[Double]] = Reader.read("src/resources/mfeat-kar-mini.txt", "[ \t]+")
       .map(arr => new DenseVector[Double](arr.map(_.toDouble)))
 
-    val b: RDD[Vector[Int]] = Reader.read("src/resources/digits.csv", ",")
+    val b: RDD[Vector[Int]] = Reader.read("src/resources/digits-mini.csv", ",")
       .map(arr => new DenseVector[Int](arr.map(_.toInt)))
 
     //    AppContext.contSize = r.take(1)(0).size // size of continuous part
