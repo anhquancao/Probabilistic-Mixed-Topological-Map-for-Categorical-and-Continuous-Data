@@ -5,7 +5,7 @@ import com.quan.util.DistributionHelper
 import org.apache.spark.rdd.RDD
 
 class ContinuousModel(val numRows: Int, val numCols: Int) extends Serializable {
-  def pXOverC(
+  def logPXOverC(
                contData: RDD[(Long, Vector[Double])],
                cells: Array[Array[Cell]]):
   RDD[(Long, Array[Array[Double]])] = {

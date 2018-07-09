@@ -33,38 +33,20 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
     temp.toArray
   }
 
-  def pXOverC(binData: RDD[(Long, Vector[Int])], contData: RDD[(Long, Vector[Double])], cells: Array[Array[Cell]]): RDD[(Long, Array[Array[Double]])] = {
+  def logPXOverC(binData: RDD[(Long, Vector[Int])], contData: RDD[(Long, Vector[Double])], cells: Array[Array[Cell]]): RDD[(Long, Array[Array[Double]])] = {
 
     println("Mixed model: Compute pXOverC")
 
     // compute the bernouli of x over c
-    val logPXBinOverC: RDD[(Long, Array[Array[Double]])] = this.binaryModel.pXOverC(binData, cells)
+    val logPXBinOverC: RDD[(Long, Array[Array[Double]])] = this.binaryModel.logPXOverC(binData, cells)
 
     // compute gaussian
-    val logPXContOverC: RDD[(Long, Array[Array[Double]])] = this.continuousModel.pXOverC(contData, cells)
-
-    val a = logPXContOverC.map(_._2).reduce((v1, v2) => {
-      for (row <- 0 until numRows) {
-        for (col <- 0 until numCols) {
-          v1(row)(col) = v1(row)(col)
-        }
-      }
-      v1
-    })
-
-    val b = logPXBinOverC.map(_._2).reduce((v1, v2) => {
-      for (row <- 0 until numRows) {
-        for (col <- 0 until numCols) {
-          v1(row)(col) = v1(row)(col)
-        }
-      }
-      v1
-    })
+    val logPXContOverC: RDD[(Long, Array[Array[Double]])] = this.continuousModel.logPXOverC(contData, cells)
 
     //    val b = pXBinOverC.take(3)
 
     // compute the p(x/c)
-    val pXOverC = logPXBinOverC.join(logPXContOverC).map((p: (Long, (Array[Array[Double]], Array[Array[Double]]))) => {
+    val logPXOverC = logPXBinOverC.join(logPXContOverC).map((p: (Long, (Array[Array[Double]], Array[Array[Double]]))) => {
       val temp = for (row <- 0 until numRows)
         yield (
           for (col <- 0 until numCols)
@@ -73,7 +55,7 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
       (p._1, temp.toArray)
     })
 
-    pXOverC
+    logPXOverC
   }
 
   //  var count = 0
@@ -94,10 +76,12 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
 
 
   // compute p(x)
-  def pX(cells: Array[Array[Cell]], pXOverC: RDD[(Long, Array[Array[Double]])], T: Double): RDD[(Long, Double)] = {
+  def logPX(cells: Array[Array[Cell]], logPXOverC: RDD[(Long, Array[Array[Double]])], T: Double): RDD[(Long, Double)] = {
     println("Mixed model: Compute pX")
-    pXOverC.mapValues(v => {
-      var pX: Double = 0.0
+    logPXOverC.mapValues(v => {
+
+      var logPXs: Array[Double] = Array()
+
       for (rowStar <- 0 until numRows) {
         for (colStar <- 0 until numCols) {
 
@@ -107,8 +91,9 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
           // p(c*)
           val pCStar = cells(rowStar)(colStar).prob
 
-          // p(x/c*)
-          var pXOverCStar: Double = 0.0
+          var maxLogVal: Double = Double.MinValue
+
+          var logVals: Array[Double] = Array()
 
           for (row <- 0 until numRows) {
             for (col <- 0 until numCols) {
@@ -116,21 +101,33 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
               val c = (row, col)
 
               // p(x/c)
-              val pXOverCValue = v(row)(col)
+              val logPXOverCValue = v(row)(col)
 
               // p(c/c*)
               val pCOverCStar = this.pCOverCStar(c, cStar, T)
 
               // p(x/c*) = sum p(x / c) * p(c/c*)
-              val logVal = pXOverCValue + scala.math.log(pCOverCStar)
-              pXOverCStar += scala.math.exp(logVal)
+              val logVal = logPXOverCValue + scala.math.log(pCOverCStar)
+
+              if (logVal > maxLogVal) maxLogVal = logVal
+
+              logVals = logVals :+ logVal
+              //              pXOverCStar += scala.math.exp(logVal)
             }
           }
+
+          val logPXOverCStar: Double = maxLogVal + scala.math.log(logVals.map(v => scala.math.exp(v - maxLogVal)).sum)
+
           // p(x) = p(c*) x p(x/c*)
-          pX += pCStar * pXOverCStar
+          val logPx: Double = scala.math.log(pCStar) + logPXOverCStar
+
+          logPXs = logPXs :+ logPx
         }
       }
-      pX
+
+      val maxLogPxItem: Double = logPXs.max
+      val logPX: Double = maxLogPxItem + scala.math.log(logPXs.map(v => scala.math.exp(v - maxLogPxItem)).sum)
+      logPX
     })
   }
 
@@ -188,12 +185,30 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
   /**
     * p(c)
     *
-    * @param pCOverX
+    * @param logPCOverX
     * @return
     */
-  def pC(pCOverX: RDD[(Long, Array[Array[Double]])]): Array[Array[Double]] = {
+  def logPC(logPCOverX: RDD[(Long, Array[Array[Double]])]): Array[Array[Double]] = {
     println("Mixed model: Compute pC")
-    val t = pCOverX.map(_._2).reduce((v1, v2) => {
+    val maxPCOverX = logPCOverX.map(_._2).reduce((v1, v2) => {
+      for (row <- 0 until numRows) {
+        for (col <- 0 until numCols) {
+          if (v2(row)(col) > v1(row)(col))
+            v1(row)(col) = v2(row)(col)
+        }
+      }
+      v1
+    })
+    val t = logPCOverX.map(_._2).map((v: Array[Array[Double]]) => {
+      // exp(a_i - b)
+      for (row <- 0 until numRows) {
+        for (col <- 0 until numCols) {
+          v(row)(col) -= maxPCOverX(row)(col)
+        }
+      }
+      v
+    }).reduce((v1: Array[Array[Double]], v2: Array[Array[Double]]) => {
+      // compute sum exp(a_i - b)
       for (row <- 0 until numRows) {
         for (col <- 0 until numCols) {
           v1(row)(col) += v2(row)(col)
@@ -234,17 +249,18 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
       val T: Double = getT(iteration, maxIteration)
 
       // compute p(x/c)
-      val logPXOverC: RDD[(Long, Array[Array[Double]])] = this.pXOverC(binData, contData, cells)
+      val logPXOverC: RDD[(Long, Array[Array[Double]])] = this.logPXOverC(binData, contData, cells)
 
-      val t = logPXOverC.collect()
       // compute p(x)
-      val pX: RDD[(Long, Double)] = this.pX(cells, logPXOverC, T)
+      val logPX: RDD[(Long, Double)] = this.logPX(cells, logPXOverC, T)
+
+      val t = logPX.collect()
 
       // compute p(c/x)
-      val pCOverX: RDD[(Long, Array[Array[Double]])] = this.pCOverX(pX, logPXOverC, cells, T)
+      val pCOverX: RDD[(Long, Array[Array[Double]])] = this.pCOverX(logPX, logPXOverC, cells, T)
 
       // compute p(c) from p(c/x)
-      val pC: Array[Array[Double]] = this.pC(pCOverX)
+      val pC: Array[Array[Double]] = this.logPC(pCOverX)
 
       // compute the mean for continuous data
       val contMean: Array[Array[Vector[Double]]] = this.continuousModel.mean(pCOverX, contData)

@@ -10,14 +10,14 @@ object DistributionHelper {
   }
 
   def normalLog(x: Vector[Double], mean: Vector[Double], std: Double): Double = {
-    var stdVar = std
-    val zero = 1.0e-38
-    if (!(std * std > 0)) {
-      stdVar = zero
-    }
+    //    var stdVar = std
+    //    val zero = 1.0e-38
+    //    if (!(std * std > 0)) {
+    //      stdVar = zero
+    //    }
     val diffVec = x - mean
     val normValue = norm(diffVec)
-    val res = -x.size / 2 * scala.math.log(2 * scala.math.Pi) - x.size / 2 * scala.math.log(stdVar) - 0.5 * scala.math.pow(normValue / stdVar, 2.0)
+    val res = -x.size / 2 * scala.math.log(2 * scala.math.Pi * std) - 0.5 * scala.math.pow(normValue / std, 2.0)
     res
   }
 
@@ -40,8 +40,9 @@ object DistributionHelper {
     scala.math.exp(-0.5 * distance / T)
   }
 
-  def bernouli(x: Vector[Int], mean: Vector[Int], epsilon: Double): Double = {
+  def logBernouli(x: Vector[Int], mean: Vector[Int], epsilon: Double): Double = {
     val hamming = DistributionHelper.hammingDistance(x, mean)
-    scala.math.log(scala.math.pow(epsilon, hamming)) + scala.math.log(scala.math.pow(1 - epsilon, x.size - hamming))
+    val res = hamming * scala.math.log(epsilon) + (x.size - hamming) * scala.math.log(1 - epsilon)
+    res
   }
 }

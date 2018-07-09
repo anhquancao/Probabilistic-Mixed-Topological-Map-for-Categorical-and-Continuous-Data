@@ -5,13 +5,13 @@ import com.quan.util.DistributionHelper
 import org.apache.spark.rdd.RDD
 
 class BinaryModel(val numRows: Int, val numCols: Int) extends Serializable {
-  def pXOverC(binData: RDD[(Long, Vector[Int])], cells: Array[Array[Cell]]): RDD[(Long, Array[Array[Double]])] = {
+  def logPXOverC(binData: RDD[(Long, Vector[Int])], cells: Array[Array[Cell]]): RDD[(Long, Array[Array[Double]])] = {
     println("Bin Model: pXOverC")
     binData.mapValues(x => {
       val temp = for (row <- 0 until numRows)
         yield (
           for (col <- 0 until numCols)
-            yield DistributionHelper.bernouli(x, cells(row)(col).binMean, cells(row)(col).binStd)
+            yield DistributionHelper.logBernouli(x, cells(row)(col).binMean, cells(row)(col).binStd)
           ).toArray
       temp.toArray
     })
