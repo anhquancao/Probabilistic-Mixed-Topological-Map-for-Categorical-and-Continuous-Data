@@ -210,7 +210,7 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
     */
   def logPC(logPCOverX: RDD[(Long, Array[Array[Double]])]): Array[Array[Double]] = {
     println("Mixed model: Compute pC")
-    val maxPCOverX = logPCOverX.map(_._2).reduce((v1, v2) => {
+    val maxLogPCOverX = logPCOverX.map(_._2).reduce((v1, v2) => {
       for (row <- 0 until numRows) {
         for (col <- 0 until numCols) {
           if (v2(row)(col) > v1(row)(col))
@@ -220,10 +220,10 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
       v1
     })
     val sumExp: Array[Array[Double]] = logPCOverX.map(_._2).map((v: Array[Array[Double]]) => {
-      // exp(a_i - b)
+      // exp(a_i - b) for each point
       for (row <- 0 until numRows) {
         for (col <- 0 until numCols) {
-          v(row)(col) -= maxPCOverX(row)(col)
+          v(row)(col) = scala.math.exp(v(row)(col) - maxLogPCOverX(row)(col))
         }
       }
       v
@@ -239,7 +239,7 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
     for (row <- 0 until numRows) {
       // log(p(C)) = b + sum exp(a_i - b) - log(N)
       for (col <- 0 until numCols) {
-        sumExp(row)(col) = maxPCOverX(row)(col) + scala.math.log(sumExp(row)(col)) - scala.math.log(numCols * numRows)
+        sumExp(row)(col) = maxLogPCOverX(row)(col) + scala.math.log(sumExp(row)(col)) - scala.math.log(numCols * numRows)
       }
     }
     sumExp
@@ -289,6 +289,7 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
       // compute p(c) from p(c/x)
       val logPC: Array[Array[Double]] = this.logPC(logPCOverX)
 
+      // TODO: Continue transform to log
 
       // compute the mean for continuous data
       val contMean: Array[Array[Vector[Double]]] = this.continuousModel.mean(logPCOverX, contData)
