@@ -88,7 +88,7 @@ class ContinuousModel(val numRows: Int, val numCols: Int) extends Serializable {
                 contData: RDD[(Long, Vector[Double])],
                 contMean: Array[Array[Vector[Double]]],
                 contSize: Int
-         ): Array[Array[Double]] = {
+               ): Array[Array[Double]] = {
     println("Cont Model: std")
     val pCOverX: RDD[(Long, Array[Array[Double]])] = logPCOverX.mapValues((v: Array[Array[Double]]) => {
       for (row <- 0 until numRows) {
@@ -131,7 +131,7 @@ class ContinuousModel(val numRows: Int, val numCols: Int) extends Serializable {
     val t = for (row <- 0 until numRows)
       yield (
         for (col <- 0 until numCols)
-          yield numerator(row)(col) / denumerator(row)(col)
+          yield scala.math.sqrt(numerator(row)(col) / denumerator(row)(col))
         ).toArray
     t.toArray
   }
