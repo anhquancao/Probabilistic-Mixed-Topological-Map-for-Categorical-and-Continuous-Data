@@ -289,14 +289,11 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
       // compute p(c) from p(c/x)
       val logPC: Array[Array[Double]] = this.logPC(logPCOverX)
 
-      // TODO: Continue transform to log
-
       // compute the mean for continuous data
       val contMean: Array[Array[Vector[Double]]] = this.continuousModel.mean(logPCOverX, contData)
 
       // compute continuous standard deviation
-      val contStd = this.continuousModel.std(logPCOverX, contData, contMean, contSize)
-
+      val contStd = this.continuousModel.stdSquare(logPCOverX, contData, contMean, contSize)
 
       val binMean: Array[Array[DenseVector[Int]]] = this.binaryModel.mean(logPCOverX, binData)
 
