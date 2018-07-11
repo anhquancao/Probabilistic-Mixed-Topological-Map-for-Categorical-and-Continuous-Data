@@ -16,7 +16,8 @@ object DistributionHelper {
     //      stdVar = zero
     //    }
     val diffVec = x - mean
-    val normValue = norm(diffVec)
+    val s = x.length
+    val normValue = norm(diffVec) / x.length
     val res = -x.size / 2 * scala.math.log(2 * scala.math.Pi * std) - 0.5 * scala.math.pow(normValue / std, 2.0)
     res
   }
