@@ -84,10 +84,10 @@ class ContinuousModel(val numRows: Int, val numCols: Int) extends Serializable {
     * @param contMean
     * @return
     */
-  def stdSquare(logPCOverX: RDD[(Long, Array[Array[Double]])],
-                contData: RDD[(Long, Vector[Double])],
-                contMean: Array[Array[Vector[Double]]],
-                contSize: Int
+  def std(logPCOverX: RDD[(Long, Array[Array[Double]])],
+          contData: RDD[(Long, Vector[Double])],
+          contMean: Array[Array[Vector[Double]]],
+          contSize: Int
                ): Array[Array[Double]] = {
     println("Cont Model: std")
     val pCOverX: RDD[(Long, Array[Array[Double]])] = logPCOverX.mapValues((v: Array[Array[Double]]) => {
