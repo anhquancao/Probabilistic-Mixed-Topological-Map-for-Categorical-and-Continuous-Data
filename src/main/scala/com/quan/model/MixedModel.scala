@@ -246,18 +246,19 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
   }
 
   def getT(iteration: Int, maxIteration: Int): Double = {
-    println("Mixed model: Compute T")
-    TMax *
-      scala.math.pow(
-        TMin / TMax,
-        iteration / maxIteration
-      )
+    val T: Double = TMax * scala.math.pow(
+      (TMin * 1.0) / TMax,
+      iteration / (maxIteration - 1)
+    )
+    println("Mixed model: T = " + T)
+    T
   }
 
   def train(binData: RDD[(Long, Vector[Int])],
             contData: RDD[(Long, Vector[Double])],
             maxIteration: Int = 10
            ): Array[Array[Cell]] = {
+    assert(maxIteration >= 2)
     var iteration: Int = 0
 
     val contSize = contData.take(1)(0)._2.size
@@ -305,7 +306,7 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
           cells(row)(col).contStd = contStd(row)(col)
           cells(row)(col).binMean = binMean(row)(col)
           cells(row)(col).binStd = binStd(row)(col)
-          cells(row)(col).prob = logPC(row)(col)
+          cells(row)(col).prob = scala.math.exp(logPC(row)(col))
         }
       }
 

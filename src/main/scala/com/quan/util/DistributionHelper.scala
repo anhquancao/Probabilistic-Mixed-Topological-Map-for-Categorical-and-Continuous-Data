@@ -42,7 +42,7 @@ object DistributionHelper {
   }
 
   def logBernouli(x: Vector[Int], mean: Vector[Int], epsilon: Double): Double = {
-    val hamming = DistributionHelper.hammingDistance(x, mean)
+    val hamming: Double = (DistributionHelper.hammingDistance(x, mean) * 1.0) / x.length
     val res = hamming * scala.math.log(epsilon) + (x.size - hamming) * scala.math.log(1 - epsilon)
     res
   }
