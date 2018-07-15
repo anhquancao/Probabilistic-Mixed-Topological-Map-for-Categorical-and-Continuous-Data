@@ -42,6 +42,7 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
 
     // compute gaussian
     val logPXContOverC: RDD[(Long, Array[Array[Double]])] = this.continuousModel.logPXOverC(contData, cells)
+    val p = logPXContOverC.take(20)
 
     //    val b = pXBinOverC.take(3)
 
@@ -246,12 +247,38 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
   }
 
   def getT(iteration: Int, maxIteration: Int): Double = {
-    val T: Double = TMax * scala.math.pow(
+    val T: Double = 1.0 * TMax * scala.math.pow(
       (TMin * 1.0) / TMax,
-      iteration / (maxIteration - 1)
+      iteration * 1.0 / (maxIteration - 1)
     )
     println("Mixed model: T = " + T)
     T
+  }
+
+  def itemsPerCell(logPCOverX: RDD[(Long, Array[Array[Double]])]): Array[Array[Int]] = {
+    val itemsPerCell = logPCOverX.map((v: (Long, Array[Array[Double]])) => {
+      val arr = v._2
+      var maxVal = arr(0)(0)
+      for (row <- 0 until numRows) {
+        for (col <- 0 until numCols) {
+          if (arr(row)(col) > maxVal) {
+            maxVal = arr(row)(col)
+          }
+        }
+      }
+      arr.map(_.map(v => {
+        if (v == maxVal) 1 else 0
+      }))
+    })
+      .reduce((v1: Array[Array[Int]], v2: Array[Array[Int]]) => {
+        for (row <- 0 until numRows) {
+          for (col <- 0 until numCols) {
+            v1(row)(col) = v1(row)(col) + v2(row)(col)
+          }
+        }
+        v1
+      })
+    itemsPerCell
   }
 
   def train(binData: RDD[(Long, Vector[Int])],
@@ -278,6 +305,8 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
       // compute p(x/c)
       val logPXOverC: RDD[(Long, Array[Array[Double]])] = this.logPXOverC(binData, contData, cells)
 
+      val ta = logPXOverC.take(10)
+
       // compute p(x)
       val logPX: RDD[(Long, Double)] = this.logPX(cells, logPXOverC, T)
 
@@ -300,6 +329,8 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
 
       val binStd = this.binaryModel.std(logPCOverX, binMean, binData, binSize)
 
+      val numItemsPerCell: Array[Array[Int]] = itemsPerCell(logPCOverX)
+
       for (row <- 0 until numRows) {
         for (col <- 0 until numCols) {
           cells(row)(col).contMean = contMean(row)(col)
@@ -307,6 +338,7 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
           cells(row)(col).binMean = binMean(row)(col)
           cells(row)(col).binStd = binStd(row)(col)
           cells(row)(col).prob = scala.math.exp(logPC(row)(col))
+          cells(row)(col).numItems = numItemsPerCell(row)(col)
         }
       }
 

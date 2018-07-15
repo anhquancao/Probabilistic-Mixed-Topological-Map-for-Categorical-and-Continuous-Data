@@ -17,10 +17,31 @@ object DistributionHelper {
     //    }
     val diffVec = x - mean
     val s = x.length
-    val normValue = norm(diffVec) / x.length
-    val res = -x.size / 2 * scala.math.log(2 * scala.math.Pi * std) - 0.5 * scala.math.pow(normValue / std, 2.0)
+    val normValue = norm(diffVec) / s
+    val res = -1.0 * s / 2 * scala.math.log(2 * scala.math.Pi * std) - 0.5 * scala.math.pow(normValue / std, 2.0)
     res
   }
+
+  def normalMultivariateLog(x: Vector[Double], mean: Vector[Double], std: Double): Double = {
+    //    var stdVar = std
+    //    val zero = 1.0e-38
+    //    if (!(std * std > 0)) {
+    //      stdVar = zero
+    //    }
+    val diffVec: Vector[Double] = x - mean
+    val s: Int = x.length
+    val covar: DenseMatrix[Double] = scala.math.pow(std, 2) * DenseMatrix.eye[Double](s)
+    val covarInv: DenseMatrix[Double] = inv(covar)
+    val normValue: Double = norm(diffVec) / s
+//    val a = ncol(diffVec)
+//    val b = dim(covarInv)
+    val num1 = (covarInv.t * diffVec).t
+    val numerator = -0.5 * num1 * diffVec
+    val denumerator = 0.5 * s * scala.math.log(2 * scala.math.Pi) + 0.5 * scala.math.log(det(covar))
+//    numerator - denumerator
+    denumerator
+  }
+
 
   def gaussian(x: Vector[Double], mean: Vector[Double], std: Double): Double = {
     val normSquare: Double = scala.math.pow(norm(x - mean), 2.0)

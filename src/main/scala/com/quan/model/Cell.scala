@@ -9,11 +9,13 @@ import com.quan.util.{DistributionHelper, RandomHelper}
   * @param rowI
   * @param colI
   */
-class Cell(val rowI: Int, val colI: Int, val contSize: Int, val binSize: Int, var prob: Double,
+class Cell(val rowI: Int, val colI: Int, val contSize: Int,
+           val binSize: Int, var prob: Double,
            var contMean: Vector[Double],
            var binMean: Vector[Int]) extends Serializable {
   val col: Int = colI
   var row: Int = rowI
+  var numItems = 0
 
   // continuous parameters
   var contStd: Double = AppContext.getRandom.nextDouble
