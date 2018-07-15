@@ -33,13 +33,17 @@ object DistributionHelper {
     val covar: DenseMatrix[Double] = scala.math.pow(std, 2) * DenseMatrix.eye[Double](s)
     val covarInv: DenseMatrix[Double] = inv(covar)
     val normValue: Double = norm(diffVec) / s
-//    val a = ncol(diffVec)
-//    val b = dim(covarInv)
+    //    val a = ncol(diffVec)
+    //    val b = dim(covarInv)
     val num1 = (covarInv.t * diffVec).t
-    val numerator = -0.5 * num1 * diffVec
-    val denumerator = 0.5 * s * scala.math.log(2 * scala.math.Pi) + 0.5 * scala.math.log(det(covar))
-//    numerator - denumerator
-    denumerator
+    val numeratorVec: DenseVector[Double] = -0.5 * num1 * diffVec
+    val numerator: Double = numeratorVec(0)
+    val denumerator1 = 0.5 * s * scala.math.log(2 * scala.math.Pi)
+    val test = det(covar)
+    val denumerator2 = 0.5 * scala.math.log(det(covar))
+    val denumerator = denumerator1 + denumerator2
+    val res = numerator - denumerator
+    res
   }
 
 

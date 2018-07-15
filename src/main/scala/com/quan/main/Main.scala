@@ -69,11 +69,11 @@ object Main {
     val contData: RDD[(Long, Vector[Double])] = normalizedR.zipWithIndex().map(t => (t._2, t._1)).filter(_._1 < dataSize)
 
     val model = new MixedModel(numRows, numCols)
-    val cells: Array[Array[Cell]] = model.train(binData, contData, 10)
+    val cells: Array[Array[Cell]] = model.train(binData, contData, 100)
 
-    val time =  Calendar.getInstance().getTime()
-    val probFilename = "prob-" + time
-    val itemsFilename = "items-" + time
+    val time = Calendar.getInstance().getTime()
+    val probFilename = time + "-prob"
+    val itemsFilename = time + "-items"
 
     for (row <- 0 until numRows) {
       for (col <- 0 until numCols) {
