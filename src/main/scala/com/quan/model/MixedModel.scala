@@ -42,9 +42,9 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
 
     // compute gaussian
     val logPXContOverC: RDD[(Long, Array[Array[Double]])] = this.continuousModel.logPXOverC(contData, cells)
-    val p = logPXContOverC.take(20)
-
-    //    val b = pXBinOverC.take(3)
+//    val p = logPXContOverC.take(20)
+//
+//    val b = logPXBinOverC.take(3)
 
     // compute the p(x/c)
     val logPXOverC = logPXBinOverC.join(logPXContOverC).map((p: (Long, (Array[Array[Double]], Array[Array[Double]]))) => {
@@ -55,6 +55,8 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
           ).toArray
       (p._1, temp.toArray)
     })
+
+    val test = logPXOverC.collect()
 
     logPXOverC
   }
@@ -143,11 +145,6 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
       val logPX: Double = v._2._1
       val logPxOverCItem: Array[Array[Double]] = v._2._2
 
-      var maxLogPCAndCStar: Array[Array[Double]] = (
-        for (row <- 0 until numRows)
-          yield (for (col <- 0 until numCols) yield Double.MinValue).toArray
-        ).toArray
-
       var logPCOverXArr: Array[Array[Double]] = (
         for (row <- 0 until numRows)
           yield (for (col <- 0 until numCols) yield 0.0).toArray
@@ -156,6 +153,9 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
       for (row <- 0 until numRows) {
         for (col <- 0 until numCols) {
 
+          var maxLogPCAndCStar = Double.MinValue
+
+          // cell at (row, col)
           var logPCAndCStarArr: Array[Array[Double]] = (
             for (row <- 0 until numRows)
               yield (for (col <- 0 until numCols) yield 0.0).toArray
@@ -179,12 +179,11 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
               val logPCAndCStar: Double = scala.math.log(pCOverCStar) + scala.math.log(pCStar) + logPxOverCItem(row)(col) - logPX
 
               // get the max logPCAndCStar
-              if (maxLogPCAndCStar(row)(col) < logPCAndCStar) {
-                maxLogPCAndCStar(row)(col) = logPCAndCStar
+              if (maxLogPCAndCStar < logPCAndCStar) {
+                maxLogPCAndCStar = logPCAndCStar
               }
 
               logPCAndCStarArr(rowStar)(colStar) = logPCAndCStar
-              // pCOverXArr(row)(col) += scala.math.exp(logPCAndCStar)
 
             }
           }
@@ -192,11 +191,11 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
           val expSum: Double = (
             for (r <- 0 until numRows)
               yield (
-                for (c <- 0 until numCols) yield scala.math.exp(logPCAndCStarArr(r)(c) - maxLogPCAndCStar(row)(col))
+                for (c <- 0 until numCols) yield scala.math.exp(logPCAndCStarArr(r)(c) - maxLogPCAndCStar)
                 ).toArray
             ).toArray
             .map(_.sum).sum
-          logPCOverXArr(row)(col) = maxLogPCAndCStar(row)(col) + scala.math.log(expSum)
+          logPCOverXArr(row)(col) = maxLogPCAndCStar + scala.math.log(expSum)
         }
       }
       (v._1, logPCOverXArr)
@@ -336,7 +335,7 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
           cells(row)(col).contMean = contMean(row)(col)
           cells(row)(col).contStd = contStd(row)(col)
           cells(row)(col).binMean = binMean(row)(col)
-          cells(row)(col).binStd = binStd(row)(col)
+          cells(row)(col).binEpsilon = binStd(row)(col)
           cells(row)(col).prob = scala.math.exp(logPC(row)(col))
           cells(row)(col).numItems = numItemsPerCell(row)(col)
         }
