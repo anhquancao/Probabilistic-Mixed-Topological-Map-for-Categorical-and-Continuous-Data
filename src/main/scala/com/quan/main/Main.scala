@@ -69,7 +69,7 @@ object Main {
     val contData: RDD[(Long, Vector[Double])] = normalizedR.zipWithIndex().map(t => (t._2, t._1)).filter(_._1 < dataSize)
 
     val model = new MixedModel(numRows, numCols)
-    val cells: Array[Array[Cell]] = model.train(binData, contData, 50)
+    val cells: Array[Array[Cell]] = model.train(binData, contData, 2)
 
     val time = Calendar.getInstance().getTime()
     val probFilename = time + "-prob"
