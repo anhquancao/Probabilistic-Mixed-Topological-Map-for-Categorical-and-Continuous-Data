@@ -15,4 +15,11 @@ object RandomHelper {
       yield AppContext.getRandom.nextInt(2)
     new DenseVector[Int](temp.toArray)
   }
+
+  def create2dArray(numRows: Int, numCols: Int, value: Double): Array[Array[Double]] = {
+    val arr: Array[Array[Double]] = (for (row <- 0 until numRows)
+      yield (for (col <- 0 until numCols) yield value).toArray
+      ).toArray
+    arr
+  }
 }
