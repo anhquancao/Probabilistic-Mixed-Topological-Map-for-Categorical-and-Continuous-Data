@@ -123,9 +123,9 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
 
 
   // compute p(x)
-  def logPX(cells: Array[Array[Cell]], logPXOverC: RDD[(Long, Array[Array[Double]])], T: Double): RDD[(Long, Double)] = {
+  def logPX(cells: Array[Array[Cell]], logPXOverCStar: RDD[(Long, Array[Array[Double]])], T: Double): RDD[(Long, Double)] = {
     println("Mixed model: Compute pX")
-    logPXOverC.mapValues(v => {
+    logPXOverCStar.mapValues(v => {
 
       var logPXs: Array[Double] = Array()
 
@@ -148,13 +148,13 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
               val c = (row, col)
 
               // p(x/c)
-              val logPXOverCValue = v(row)(col)
+              val logPXOverCStarValue = v(row)(col)
 
               // p(c/c*)
               val pCOverCStar = this.pCOverCStar(c, cStar, T)
 
               // p(x/c*) = sum p(x / c) * p(c/c*)
-              val logVal = logPXOverCValue + scala.math.log(pCOverCStar)
+              val logVal = logPXOverCStarValue + scala.math.log(pCOverCStar)
 
               if (logVal > maxLogVal) maxLogVal = logVal
 
@@ -331,7 +331,7 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
             contData: RDD[(Long, Vector[Double])],
             maxIteration: Int = 10
            ): Array[Array[Cell]] = {
-    assert(maxIteration >= 2)
+    assert(maxIteration >= 2, "Max iteration must be bigger than 1")
     var iteration: Int = 0
 
     val contSize = contData.take(1)(0)._2.size
@@ -354,10 +354,13 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
 
       val logPXOverCStar: RDD[(Long, Array[Array[Double]])] = this.logPXOverCStar(logPXOverC, T)
 
-      val t1 = logPXOverCStar.collect()
+
 
       // compute p(x)
-      val logPX: RDD[(Long, Double)] = this.logPX(cells, logPXOverC, T)
+      val logPX: RDD[(Long, Double)] = this.logPX(cells, logPXOverCStar, T)
+
+
+      val t1 = logPX.collect()
 
       // compute p(c/x)
       val logPCOverX: RDD[(Long, Array[Array[Double]])] = this.logPCOverX(logPX, logPXOverC, cells, T)
