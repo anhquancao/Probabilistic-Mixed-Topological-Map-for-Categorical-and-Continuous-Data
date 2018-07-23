@@ -306,30 +306,28 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
     T
   }
 
-  def itemsPerCell(logPCOverX: RDD[(Long, Array[Array[Double]])]): Array[Array[Int]] = {
-    val itemsPerCell = logPCOverX.map((v: (Long, Array[Array[Double]])) => {
+  def itemsPerCell(logPCOverX: RDD[(Long, Array[Double])]): Array[Array[Double]] = {
+    val itemsPerCell: Array[Int] = logPCOverX.map((v: (Long, Array[Double])) => {
       val arr = v._2
-      var maxVal = arr(0)(0)
-      for (row <- 0 until numRows) {
-        for (col <- 0 until numCols) {
-          if (arr(row)(col) > maxVal) {
-            maxVal = arr(row)(col)
-          }
-        }
-      }
-      arr.map(_.map(v => {
+      val maxVal = arr.max
+      arr.map(v => {
         if (v == maxVal) 1 else 0
-      }))
+      })
     })
-      .reduce((v1: Array[Array[Int]], v2: Array[Array[Int]]) => {
-        for (row <- 0 until numRows) {
-          for (col <- 0 until numCols) {
-            v1(row)(col) = v1(row)(col) + v2(row)(col)
-          }
+      .reduce((v1: Array[Int], v2: Array[Int]) => {
+        for (i <- 0 until numRows * numCols) {
+          v1(i) = v1(i) + v2(i)
         }
         v1
       })
-    itemsPerCell
+
+    val res: Array[Array[Double]] = RandomHelper.create2dArray(numRows, numCols, 0.0)
+    for (row <- 0 until numRows) {
+      for (col <- 0 until numCols) {
+        res(row)(col) = itemsPerCell(DistributionHelper.index(row, col, numCols))
+      }
+    }
+    res
   }
 
   def train(binData: RDD[(Long, Vector[Int])],
@@ -379,33 +377,35 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
       // compute p(c*) from p(c*/x)
       val logPCStar: Array[Double] = this.logPCStar(logPCStarOverX)
 
-
-
-
       // compute the mean for continuous data
       val contMean: Array[Array[Vector[Double]]] = this.continuousModel.mean(logPCOverX, contData)
 
-      val a = "a"
+
       //
-      //      // compute continuous standard deviation
-      //      val contStd = this.continuousModel.std(logPCOverX, contData, contMean, contSize)
+      // compute continuous standard deviation
+      val contStd = this.continuousModel.std(logPCOverX, contData, contMean, contSize)
+
+
       //
-      //      val binMean: Array[Array[DenseVector[Int]]] = this.binaryModel.mean(logPCOverX, binData)
-      //
-      //      val binEpsilon = this.binaryModel.std(logPCOverX, binMean, binData, binSize)
-      //
-      //      val numItemsPerCell: Array[Array[Int]] = itemsPerCell(logPCOverX)
-      //
-      //      for (row <- 0 until numRows) {
-      //        for (col <- 0 until numCols) {
-      //          cells(row)(col).contMean = contMean(row)(col)
-      //          cells(row)(col).contStd = contStd(row)(col)
-      //          cells(row)(col).binMean = binMean(row)(col)
-      //          cells(row)(col).binEpsilon = binEpsilon(row)(col)
-      //          cells(row)(col).prob = scala.math.exp(logPC(row)(col))
-      //          cells(row)(col).numItems = numItemsPerCell(row)(col)
-      //        }
-      //      }
+      val binMean: Array[Array[DenseVector[Int]]] = this.binaryModel.mean(logPCOverX, binData)
+
+
+      val binEpsilon = this.binaryModel.epsilon(logPCOverX, binMean, binData, binSize)
+
+      //      val a = "a"
+
+      val numItemsPerCell: Array[Array[Double]] = itemsPerCell(logPCStarOverX)
+
+      for (row <- 0 until numRows) {
+        for (col <- 0 until numCols) {
+          cells(row)(col).contMean = contMean(row)(col)
+          cells(row)(col).contStd = contStd(row)(col)
+          cells(row)(col).binMean = binMean(row)(col)
+          cells(row)(col).binEpsilon = binEpsilon(row)(col)
+          cells(row)(col).prob = scala.math.exp(logPCStar(DistributionHelper.index(row, col, numCols)))
+          cells(row)(col).numItems = numItemsPerCell(row)(col)
+        }
+      }
 
     }
     cells

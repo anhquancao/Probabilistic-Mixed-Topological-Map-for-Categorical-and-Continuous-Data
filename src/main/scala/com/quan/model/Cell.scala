@@ -15,7 +15,7 @@ class Cell(val rowI: Int, val colI: Int, val contSize: Int,
            var binMean: Vector[Int]) extends Serializable {
   val col: Int = colI
   var row: Int = rowI
-  var numItems = 0
+  var numItems = 0.0
 
   // continuous parameters
   var contStd: Double = AppContext.getRandom.nextDouble + 0.5

@@ -71,4 +71,8 @@ object DistributionHelper {
     val res = hamming * scala.math.log(epsilon) + (x.length - hamming) * scala.math.log(1 - epsilon)
     res / x.length
   }
+
+  def index(row: Int, col: Int, numCols: Int): Int = {
+    row * numCols + col
+  }
 }
