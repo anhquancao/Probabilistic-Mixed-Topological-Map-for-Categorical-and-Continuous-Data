@@ -184,13 +184,13 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
                           cells: Array[Array[Cell]],
                           logPXOverC: RDD[(Long, Array[Array[Double]])],
                           T: Double
-                        ): Array[Array[Double]] = {
+                        ): RDD[(Long, Array[Array[Double]])] = {
     val numCells: Int = numCols * numRows
-    val res = RandomHelper.create2dArray(numCells, numCells, 0.0)
 
-    logPX.join(logPXOverC).map(v => {
-      val logPX: Double = v._2._1
-      val logPXOverCArr: Array[Array[Double]] = v._2._2
+    logPX.join(logPXOverC).mapValues(v => {
+      val logPX: Double = v._1
+      val logPXOverCArr: Array[Array[Double]] = v._2
+      val res = RandomHelper.create2dArray(numCells, numCells, 0.0)
 
       for (rowStar <- 0 until numRows) {
         for (colStar <- 0 until numCols) {
@@ -209,81 +209,81 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
           }
         }
       }
+      res
     })
-    res
   }
 
   // compute p(cStar/x)
   // index = row * numCol + col
-  def logPCStarOverX(logPCAndCStar: Array[Array[Double]]): Array[Double] = {
-    val maxLogCStar = logPCAndCStar.map(_.max)
+  def logPCStarOverX(logPCAndCStarOverX: RDD[(Long, Array[Array[Double]])]): RDD[(Long, Array[Double])] = {
+    logPCAndCStarOverX.mapValues((logPCAndCStarOverX: Array[Array[Double]]) => {
+      val maxLogCStar = logPCAndCStarOverX.map(_.max)
 
-    val expSum: Array[Array[Double]] = logPCAndCStar.map(_.zipWithIndex.map { case (s, i) => scala.math.exp(s - maxLogCStar(i)) })
+      val expSum: Array[Array[Double]] = logPCAndCStarOverX.map(_.zipWithIndex.map { case (s, i) => scala.math.exp(s - maxLogCStar(i)) })
 
-    expSum.zipWithIndex.map { case (v, i) => maxLogCStar(i) + scala.math.log(v.sum) }
+      expSum.zipWithIndex.map { case (v, i) => maxLogCStar(i) + scala.math.log(v.sum) }
+    })
   }
 
   // compute p(c/x)
   // index = row * numCol + col
-  def logPCOverX(logPCAndCStar: Array[Array[Double]]): Array[Double] = {
+  def logPCOverX(logPCAndCStarOverX: RDD[(Long, Array[Array[Double]])]): RDD[(Long, Array[Double])] = {
 
     val numCells: Int = numRows * numCols
 
-    val maxLogC = (for (i <- 0 until numCells) yield Double.MinValue).toArray
+    logPCAndCStarOverX.mapValues((logPCAndCStarOverX: Array[Array[Double]]) => {
+      val maxLogC = (for (i <- 0 until numCells) yield Double.MinValue).toArray
 
-    for (iStar <- 0 until numCells) {
-      for (i <- 0 until numCells) {
-        if (maxLogC(i) < logPCAndCStar(iStar)(i)) {
-          maxLogC(i) = logPCAndCStar(iStar)(i)
+      for (iStar <- 0 until numCells) {
+        for (i <- 0 until numCells) {
+          if (maxLogC(i) < logPCAndCStarOverX(iStar)(i)) {
+            maxLogC(i) = logPCAndCStarOverX(iStar)(i)
+          }
         }
       }
-    }
-    val expSum: Array[Array[Double]] = logPCAndCStar
-      .map(
-        _.zipWithIndex
-          .map { case (v, i) => scala.math.exp(v - maxLogC(i)) }
-      )
+      val expSum: Array[Array[Double]] = logPCAndCStarOverX
+        .map(
+          _.zipWithIndex
+            .map { case (v, i) => scala.math.exp(v - maxLogC(i)) }
+        )
 
-    val res = (for (i <- 0 until numCells) yield 0).toArray
+      val res = (for (i <- 0 until numCells) yield 0.0).toArray
 
-    for (iStar <- 0 until numCells) {
-      for (i <- 0 until numCells) {
-        res(i) += expSum(iStar)(i)
+      for (iStar <- 0 until numCells) {
+        for (i <- 0 until numCells) {
+          res(i) += expSum(iStar)(i)
+        }
       }
-    }
-    res.zipWithIndex.map { case (v, i) => maxLogC(i) + scala.math.log(v) }
+      res.zipWithIndex.map { case (v, i) => maxLogC(i) + scala.math.log(v) }
+    })
+
   }
 
-  /**
-    * p(c)
-    *
-    * @param logPCOverX
-    * @return
-    */
-  def logPC(logPCOverX: RDD[(Long, Array[Array[Double]])]): Array[Array[Double]] = {
+  // p(c*)
+  def logPCStar(logPCStarOverX: RDD[(Long, Array[Double])]): Array[Double] = {
     println("Mixed model: Compute pC")
-    val maxLogPCOverX = logPCOverX.map(_._2).reduce((v1, v2) => {
+    val maxLogPCOverX: Array[Double] = logPCStarOverX.map(_._2).reduce((v1: Array[Double], v2: Array[Double]) => {
       for (row <- 0 until numRows) {
         for (col <- 0 until numCols) {
-          if (v2(row)(col) > v1(row)(col))
-            v1(row)(col) = v2(row)(col)
+          if (v2(row * numCols + col) > v1(row * numCols + col))
+            v1(row * numCols + col) = v2(row * numCols + col)
         }
       }
       v1
     })
-    val sumExp: Array[Array[Double]] = logPCOverX.map(_._2).map((v: Array[Array[Double]]) => {
+    val sumExp: Array[Double] = logPCStarOverX.map(_._2).map((v: Array[Double]) => {
       // exp(a_i - b) for each point
       for (row <- 0 until numRows) {
         for (col <- 0 until numCols) {
-          v(row)(col) = scala.math.exp(v(row)(col) - maxLogPCOverX(row)(col))
+          v(row * numCols + col) = scala.math.exp(v(row * numCols + col) - maxLogPCOverX(row * numCols + col))
         }
       }
       v
-    }).reduce((v1: Array[Array[Double]], v2: Array[Array[Double]]) => {
+    }).reduce((v1: Array[Double], v2: Array[Double]) => {
       // compute sum exp(a_i - b)
       for (row <- 0 until numRows) {
         for (col <- 0 until numCols) {
-          v1(row)(col) += v2(row)(col)
+          v1(row * numCols + col) += v2(row * numCols + col)
         }
       }
       v1
@@ -291,7 +291,7 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
     for (row <- 0 until numRows) {
       // log(p(C)) = b + sum exp(a_i - b) - log(N)
       for (col <- 0 until numCols) {
-        sumExp(row)(col) = maxLogPCOverX(row)(col) + scala.math.log(sumExp(row)(col)) - scala.math.log(numCols * numRows)
+        sumExp(row * numCols + col) = maxLogPCOverX(row * numCols + col) + scala.math.log(sumExp(row * numCols + col)) - scala.math.log(numCols * numRows)
       }
     }
     sumExp
@@ -363,39 +363,49 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
       // compute p(x)
       val logPX: RDD[(Long, Double)] = this.logPX(cells, logPXOverCStar, T)
 
-
-      val t1 = logPX.collect()
+      val logPCAndCStarOverX: RDD[(Long, Array[Array[Double]])] = this.logPCAndCStarOverX(logPX, cells, logPXOverC, T)
 
       // compute p(c/x)
-      val logPCOverX: RDD[(Long, Array[Array[Double]])] = this.logPCOverX(logPX, logPXOverC, cells, T)
+      val logPCOverX: RDD[(Long, Array[Double])] = this.logPCOverX(logPCAndCStarOverX)
 
-      val t = logPCOverX.collect()
+      val t1 = logPCOverX.collect()
 
-      // compute p(c) from p(c/x)
-      val logPC: Array[Array[Double]] = this.logPC(logPCOverX)
+      // compute p(cStar/x)
+      val logPCStarOverX: RDD[(Long, Array[Double])] = this.logPCStarOverX(logPCAndCStarOverX)
+
+      val t2 = logPCStarOverX.collect()
+
+
+      // compute p(c*) from p(c*/x)
+      val logPCStar: Array[Double] = this.logPCStar(logPCStarOverX)
+
+
+
 
       // compute the mean for continuous data
       val contMean: Array[Array[Vector[Double]]] = this.continuousModel.mean(logPCOverX, contData)
 
-      // compute continuous standard deviation
-      val contStd = this.continuousModel.std(logPCOverX, contData, contMean, contSize)
-
-      val binMean: Array[Array[DenseVector[Int]]] = this.binaryModel.mean(logPCOverX, binData)
-
-      val binEpsilon = this.binaryModel.std(logPCOverX, binMean, binData, binSize)
-
-      val numItemsPerCell: Array[Array[Int]] = itemsPerCell(logPCOverX)
-
-      for (row <- 0 until numRows) {
-        for (col <- 0 until numCols) {
-          cells(row)(col).contMean = contMean(row)(col)
-          cells(row)(col).contStd = contStd(row)(col)
-          cells(row)(col).binMean = binMean(row)(col)
-          cells(row)(col).binEpsilon = binEpsilon(row)(col)
-          cells(row)(col).prob = scala.math.exp(logPC(row)(col))
-          cells(row)(col).numItems = numItemsPerCell(row)(col)
-        }
-      }
+      val a = "a"
+      //
+      //      // compute continuous standard deviation
+      //      val contStd = this.continuousModel.std(logPCOverX, contData, contMean, contSize)
+      //
+      //      val binMean: Array[Array[DenseVector[Int]]] = this.binaryModel.mean(logPCOverX, binData)
+      //
+      //      val binEpsilon = this.binaryModel.std(logPCOverX, binMean, binData, binSize)
+      //
+      //      val numItemsPerCell: Array[Array[Int]] = itemsPerCell(logPCOverX)
+      //
+      //      for (row <- 0 until numRows) {
+      //        for (col <- 0 until numCols) {
+      //          cells(row)(col).contMean = contMean(row)(col)
+      //          cells(row)(col).contStd = contStd(row)(col)
+      //          cells(row)(col).binMean = binMean(row)(col)
+      //          cells(row)(col).binEpsilon = binEpsilon(row)(col)
+      //          cells(row)(col).prob = scala.math.exp(logPC(row)(col))
+      //          cells(row)(col).numItems = numItemsPerCell(row)(col)
+      //        }
+      //      }
 
     }
     cells
