@@ -366,12 +366,12 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
       // compute p(c/x)
       val logPCOverX: RDD[(Long, Array[Double])] = this.logPCOverX(logPCAndCStarOverX)
 
-      val t1 = logPCOverX.collect()
+//      val t1 = logPCOverX.collect()
 
       // compute p(cStar/x)
       val logPCStarOverX: RDD[(Long, Array[Double])] = this.logPCStarOverX(logPCAndCStarOverX)
 
-      val t2 = logPCStarOverX.collect()
+//      val t2 = logPCStarOverX.collect()
 
 
       // compute p(c*) from p(c*/x)

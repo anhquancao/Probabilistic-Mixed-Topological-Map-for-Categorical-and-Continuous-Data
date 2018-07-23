@@ -49,7 +49,7 @@ object Main {
     val numRows: Int = 5
     val numCols: Int = 5
 
-    val dataSize: Int = 10
+    val dataSize: Int = 1000
 
     val r: RDD[Vector[Double]] = Reader.read("src/resources/s1.txt", "[ \t]+")
       .map(arr => new DenseVector[Double](arr.map(_.toDouble)))
@@ -69,7 +69,7 @@ object Main {
     val contData: RDD[(Long, Vector[Double])] = normalizedR.zipWithIndex().map(t => (t._2, t._1)).filter(_._1 < dataSize)
 
     val model = new MixedModel(numRows, numCols)
-    val cells: Array[Array[Cell]] = model.train(binData, contData, 2)
+    val cells: Array[Array[Cell]] = model.train(binData, contData, 3)
 
     val time = Calendar.getInstance().getTime()
     val probFilename = time + "-prob"

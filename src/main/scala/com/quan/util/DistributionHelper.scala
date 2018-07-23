@@ -70,6 +70,7 @@ object DistributionHelper {
     val hamming: Double = DistributionHelper.hammingDistance(x, mean) * 1.0
     val res = hamming * scala.math.log(epsilon) + (x.length - hamming) * scala.math.log(1 - epsilon)
     res / x.length
+//    res
   }
 
   def index(row: Int, col: Int, numCols: Int): Int = {
