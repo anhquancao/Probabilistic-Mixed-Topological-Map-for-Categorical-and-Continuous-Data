@@ -105,7 +105,7 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
             for (col <- 0 until numCols) {
               val c: (Int, Int) = (row, col)
 
-              val logPCOverCStar: Double = this.pCOverCStar(c, cStar, T)
+              val logPCOverCStar: Double = scala.math.log(this.pCOverCStar(c, cStar, T))
 
               // log p(x/cStar) = log p(x/c) + p(c/cStar)
               val logVal: Double = logPCOverCStar + logPXOverCArr(row)(col)
@@ -360,9 +360,13 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
       // checked
       val logPXOverC: RDD[(Long, Array[Array[Double]])] = this.logPXOverC(binData, contData, cells)
 
+//      val logPXOverCCollect = logPXOverC.collect()
 
+      // compute p(x/c*)
+      // checked
       val logPXOverCStar: RDD[(Long, Array[Array[Double]])] = this.logPXOverCStar(logPXOverC, T)
 
+//      val logPXOverCStarCollect = logPXOverCStar.collect()
 
       // compute p(x)
       val logPX: RDD[(Long, Double)] = this.logPX(cells, logPXOverCStar, T)
