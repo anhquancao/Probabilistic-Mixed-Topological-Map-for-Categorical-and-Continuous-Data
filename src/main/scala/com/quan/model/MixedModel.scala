@@ -253,7 +253,7 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
     val maxLogPCOverX: Array[Double] = logPCStarOverX.map(_._2).reduce((v1: Array[Double], v2: Array[Double]) => {
       for (row <- 0 until numRows) {
         for (col <- 0 until numCols) {
-          if (v2(row * numCols + col) > v1(row * numCols + col))
+          if (v1(row * numCols + col) < v2(row * numCols + col))
             v1(row * numCols + col) = v2(row * numCols + col)
         }
       }
@@ -374,9 +374,10 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
       // checked
       val logPCStarOverX: RDD[(Long, Array[Double])] = this.logPCStarOverX(logPCAndCStarOverX)
 
-      val logPCStarOverXCollect = logPCStarOverX.collect()
+//      val logPCStarOverXCollect = logPCStarOverX.collect()
 
       // compute p(c*) from p(c*/x)
+      // checked
       val logPCStar: Array[Double] = this.logPCStar(logPCStarOverX)
 
       // compute the mean for continuous data
