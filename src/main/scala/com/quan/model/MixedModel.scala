@@ -27,7 +27,7 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
     val prob = 1.0 / (numCols * numRows)
     val temp = for (row <- 0 until numRows)
       yield (
-        for (col <- 0 until  numCols)
+        for (col <- 0 until numCols)
           yield new Cell(row, col, contSize, binSize, prob, contMean, binMean)
         ).toArray
     temp.toArray
@@ -42,9 +42,13 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
 
     // compute gaussian
     val logPXContOverC: RDD[(Long, Array[Array[Double]])] = this.continuousModel.logPXOverC(contData, cells)
-        val p = logPXContOverC.take(20)
-    //
-        val b = logPXBinOverC.take(3)
+//    val p = logPXContOverC.take(20)
+//    //
+//    val b = logPXBinOverC.take(3)
+//
+//    val bData = binData.collect()
+//
+//    val pData = contData.collect()
 
     // compute the p(x/c)
     val logPXOverC = logPXBinOverC.join(logPXContOverC).map((p: (Long, (Array[Array[Double]], Array[Array[Double]]))) => {
@@ -353,6 +357,7 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
       val T: Double = getT(iteration, maxIteration)
 
       // compute p(x/c)
+      // checked
       val logPXOverC: RDD[(Long, Array[Array[Double]])] = this.logPXOverC(binData, contData, cells)
 
 
@@ -367,12 +372,12 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
       // compute p(c/x)
       val logPCOverX: RDD[(Long, Array[Double])] = this.logPCOverX(logPCAndCStarOverX)
 
-//      val t1 = logPCOverX.collect()
+      //      val t1 = logPCOverX.collect()
 
       // compute p(cStar/x)
       val logPCStarOverX: RDD[(Long, Array[Double])] = this.logPCStarOverX(logPCAndCStarOverX)
 
-//      val t2 = logPCStarOverX.collect()
+      //      val t2 = logPCStarOverX.collect()
 
 
       // compute p(c*) from p(c*/x)
@@ -384,7 +389,7 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
 
       //
       // compute continuous standard deviation
-      val contStd = this.continuousModel.std(logPCOverX, contData, contMean, contSize)
+      val contVariance = this.continuousModel.variance(logPCOverX, contData, contMean, contSize)
 
 
       //
@@ -400,7 +405,7 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
       for (row <- 0 until numRows) {
         for (col <- 0 until numCols) {
           cells(row)(col).contMean = contMean(row)(col)
-          cells(row)(col).contStd = contStd(row)(col)
+          cells(row)(col).contVariance = contVariance(row)(col)
           cells(row)(col).binMean = binMean(row)(col)
           cells(row)(col).binEpsilon = binEpsilon(row)(col)
           cells(row)(col).prob = scala.math.exp(logPCStar(DistributionHelper.index(row, col, numCols)))

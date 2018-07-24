@@ -14,7 +14,7 @@ class ContinuousModel(val numRows: Int, val numCols: Int) extends Serializable {
       val temp = for (row <- 0 until numRows)
         yield (
           for (col <- 0 until numCols)
-            yield DistributionHelper.normalMultivariateLog(x, cells(row)(col).contMean, cells(row)(col).contStd)
+            yield DistributionHelper.normalMultivariateLog(x, cells(row)(col).contMean, cells(row)(col).contVariance)
           ).toArray
       temp.toArray
     })
@@ -87,12 +87,12 @@ class ContinuousModel(val numRows: Int, val numCols: Int) extends Serializable {
     * @param contMean
     * @return
     */
-  def std(logPCOverX: RDD[(Long, Array[Double])],
-          contData: RDD[(Long, Vector[Double])],
-          contMean: Array[Array[Vector[Double]]],
-          contSize: Int
-         ): Array[Array[Double]] = {
-    println("Cont Model: std")
+  def variance(logPCOverX: RDD[(Long, Array[Double])],
+               contData: RDD[(Long, Vector[Double])],
+               contMean: Array[Array[Vector[Double]]],
+               contSize: Int
+              ): Array[Array[Double]] = {
+    println("Cont Model: Variance")
     val pCOverX: RDD[(Long, Array[Double])] = logPCOverX.mapValues((v: Array[Double]) => {
       for (row <- 0 until numRows) {
         for (col <- 0 until numCols) {
@@ -138,8 +138,8 @@ class ContinuousModel(val numRows: Int, val numCols: Int) extends Serializable {
     val t = for (row <- 0 until numRows)
       yield (
         for (col <- 0 until numCols)
-          yield scala.math.sqrt(numerator(row)(col) /
-            denumerator(DistributionHelper.index(row, col, numCols)))
+          yield numerator(row)(col) /
+            denumerator(DistributionHelper.index(row, col, numCols))
         ).toArray
     t.toArray
   }

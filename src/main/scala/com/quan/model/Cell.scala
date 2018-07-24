@@ -18,7 +18,7 @@ class Cell(val rowI: Int, val colI: Int, val contSize: Int,
   var numItems = 0.0
 
   // continuous parameters
-  var contStd: Double = AppContext.getRandom.nextDouble + 0.5
+  var contVariance: Double = AppContext.getRandom.nextDouble + 0.5
   //  var contMean: Vector[Double] = RandomHelper.createRandomDoubleVector(contSize)
 
   // binary parameters

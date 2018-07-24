@@ -58,7 +58,7 @@ class BinaryModel(val numRows: Int, val numCols: Int) extends Serializable {
               binData: RDD[(Long, Vector[Int])],
               binSize: Int
              ): Array[Array[Double]] = {
-    println("Bin Model: std")
+    println("Bin Model: epsilon")
     val numerator: Array[Array[Double]] = pCOverX.join(binData).map {
       case (i, data: (Array[Double], Vector[Int])) => {
         val pC: Array[Double] = data._1

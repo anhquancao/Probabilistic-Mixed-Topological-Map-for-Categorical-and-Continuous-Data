@@ -39,6 +39,7 @@ object Main {
       }
       v
     })
+//    val normData = normalizedData.collect()
     normalizedData
   }
 
@@ -53,6 +54,8 @@ object Main {
 
     val r: RDD[Vector[Double]] = Reader.read("src/resources/test.txt", "[ \t]+")
       .map(arr => new DenseVector[Double](arr.map(_.toDouble)))
+
+    val a = r.collect()
 
     val normalizedR = normalizeData(r)
 
