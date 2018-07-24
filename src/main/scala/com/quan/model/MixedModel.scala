@@ -25,9 +25,9 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
     var binMean: Vector[Int] = RandomHelper.createRandomBinaryVector(binSize)
 
     val prob = 1.0 / (numCols * numRows)
-    val temp = for (row <- 0 to numRows)
+    val temp = for (row <- 0 until numRows)
       yield (
-        for (col <- 0 to numCols)
+        for (col <- 0 until  numCols)
           yield new Cell(row, col, contSize, binSize, prob, contMean, binMean)
         ).toArray
     temp.toArray
@@ -42,9 +42,9 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
 
     // compute gaussian
     val logPXContOverC: RDD[(Long, Array[Array[Double]])] = this.continuousModel.logPXOverC(contData, cells)
-    //    val p = logPXContOverC.take(20)
+        val p = logPXContOverC.take(20)
     //
-    //    val b = logPXBinOverC.take(3)
+        val b = logPXBinOverC.take(3)
 
     // compute the p(x/c)
     val logPXOverC = logPXBinOverC.join(logPXContOverC).map((p: (Long, (Array[Array[Double]], Array[Array[Double]]))) => {
@@ -66,18 +66,18 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
   def pCOverCStar(c: (Int, Int), cStar: (Int, Int), T: Double): Double = {
     //    count += 1
     //    println("Mixed model: Compute pCOverCStar " + count)
-    var pCOverCStartSum = 0.0
+    var pCOverCStarSum = 0.0
     for (row <- 0 until numRows) {
       for (col <- 0 until numCols) {
         val r = (row, col)
-        pCOverCStartSum = pCOverCStartSum + DistributionHelper.kernel(DistributionHelper.distance(cStar, r), T)
+        pCOverCStarSum = pCOverCStarSum + DistributionHelper.kernel(DistributionHelper.distance(cStar, r), T)
       }
     }
 
-    DistributionHelper.kernel(DistributionHelper.distance(c, cStar), T) / pCOverCStartSum
+    DistributionHelper.kernel(DistributionHelper.distance(c, cStar), T) / pCOverCStarSum
   }
 
-  // compute p(x/cStar)
+  // compute p(x/c*)
   def logPXOverCStar(
                       logPXOverC: RDD[(Long, Array[Array[Double]])],
                       T: Double
@@ -86,6 +86,7 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
     logPXOverC.mapValues((logPXOverCArr: Array[Array[Double]]) => {
 
       val logPXOverCStar: Array[Array[Double]] = RandomHelper.create2dArray(numRows, numCols, 0.0)
+
       for (rowStar <- 0 until numRows) {
         for (colStar <- 0 until numCols) {
 
