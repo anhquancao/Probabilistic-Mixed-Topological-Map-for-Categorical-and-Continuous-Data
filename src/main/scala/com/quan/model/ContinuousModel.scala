@@ -14,7 +14,7 @@ class ContinuousModel(val numRows: Int, val numCols: Int) extends Serializable {
       val temp = for (row <- 0 until numRows)
         yield (
           for (col <- 0 until numCols)
-            yield DistributionHelper.normalMultivariateLog(x, cells(row)(col).contMean, cells(row)(col).contVariance)
+            yield DistributionHelper.normalLog(x, cells(row)(col).contMean, cells(row)(col).contVariance)
           ).toArray
       temp.toArray
     })

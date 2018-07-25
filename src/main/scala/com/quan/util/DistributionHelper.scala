@@ -9,15 +9,17 @@ object DistributionHelper {
     sum(diff.map(v => v.abs))
   }
 
-  def normalLog(x: Vector[Double], mean: Vector[Double], std: Double): Double = {
+  def normalLog(x: Vector[Double], mean: Vector[Double], variance: Double): Double = {
     //    var stdVar = std
     //    val zero = 1.0e-38
     //    if (!(std * std > 0)) {
     //      stdVar = zero
     //    }
+    val std = scala.math.sqrt(variance)
     val diffVec = x - mean
     val s = x.length
-    val normValue = norm(diffVec) / s
+//    val normValue = norm(diffVec) / s
+    val normValue = norm(diffVec)
     val res = -1.0 * s / 2 * scala.math.log(2 * scala.math.Pi * std) - 0.5 * scala.math.pow(normValue / std, 2.0)
     res
   }
