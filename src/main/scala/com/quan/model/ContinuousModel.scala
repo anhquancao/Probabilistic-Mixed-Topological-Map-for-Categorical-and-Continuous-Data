@@ -103,8 +103,6 @@ class ContinuousModel(val numRows: Int, val numCols: Int) extends Serializable {
       v
     })
 
-    val t1 = pCOverX.collect()
-
     val denumerator: Array[Double] = pCOverX.map(_._2)
       .reduce((v1: Array[Double], v2: Array[Double]) => {
         for (row <- 0 until numRows) {
@@ -126,7 +124,7 @@ class ContinuousModel(val numRows: Int, val numCols: Int) extends Serializable {
               yield scala.math.pow(norm(contMean(row)(col) - x), 2) * p(DistributionHelper.index(row, col, numCols)) // x * p(c / x)
             ).toArray
         temp.toArray
-      }).map(_._2).reduce((v1, v2) => {
+      }).map(_._2).reduce((v1: Array[Array[Double]], v2: Array[Array[Double]]) => {
       for (row <- 0 until numRows) {
         for (col <- 0 until numCols) {
           v1(row)(col) += v2(row)(col)

@@ -60,7 +60,7 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
       (p._1, temp.toArray)
     })
 
-    val test = logPXOverC.collect()
+//    val test = logPXOverC.collect()
 
     logPXOverC
   }
@@ -374,26 +374,30 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
       // checked
       val logPCStarOverX: RDD[(Long, Array[Double])] = this.logPCStarOverX(logPCAndCStarOverX)
 
-//      val logPCStarOverXCollect = logPCStarOverX.collect()
+      val logPCStarOverXCollect = logPCStarOverX.collect()
 
       // compute p(c*) from p(c*/x)
       // checked
       val logPCStar: Array[Double] = this.logPCStar(logPCStarOverX)
 
-      val contDataCollett = contData.collect()
+      val contDataCollect = contData.collect()
+
 
       // compute the mean for continuous data
       // checked
       val contMean: Array[Array[Vector[Double]]] = this.continuousModel.mean(logPCOverX, contData)
 
-      //
-      // compute continuous standard deviation
+      // compute continuous variance
+      // checked
       val contVariance = this.continuousModel.variance(logPCOverX, contData, contMean, contSize)
 
-      //
+      val binDataCollect = binData.collect()
+
+      // checked
       val binMean: Array[Array[DenseVector[Int]]] = this.binaryModel.mean(logPCOverX, binData)
 
 
+      // checked
       val binEpsilon = this.binaryModel.epsilon(logPCOverX, binMean, binData, binSize)
 
       //      val a = "a"
@@ -410,7 +414,7 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
           cells(row)(col).numItems = numItemsPerCell(row)(col)
         }
       }
-
+      val t = "test"
     }
     cells
   }

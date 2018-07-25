@@ -17,16 +17,29 @@ class BinaryModel(val numRows: Int, val numCols: Int) extends Serializable {
     })
   }
 
-  def mean(pCOverX: RDD[(Long, Array[Double])], binData: RDD[(Long, Vector[Int])]): Array[Array[DenseVector[Int]]] = {
+  def mean(logPCOverX: RDD[(Long, Array[Double])], binData: RDD[(Long, Vector[Int])]): Array[Array[DenseVector[Int]]] = {
     println("Bin Model: mean")
-    val leftAndRightParts: (Array[Vector[Double]], Array[Vector[Double]]) = pCOverX.join(binData).map(v => {
-      val x: Vector[Double] = new DenseVector[Double](v._2._2.toArray.map(_.toDouble))
-      val pC: Array[Double] = v._2._1
-      (pC.map(value => (1.0 - x) * value), pC.map(value => x * value))
-    }).reduce((v1, v2) => {
-      val leftPart: Array[Vector[Double]] = v1._1.zip(v2._1).map { case (x, y) => x + y }
+    val pCOverX: RDD[(Long, Array[Double])] = logPCOverX.mapValues(_.map(scala.math.exp))
 
-      val rightPart: Array[Vector[Double]] = v1._2.zip(v2._2).map { case (x, y) => x + y }
+    val t1 = pCOverX.collect()
+    val t2 = binData.collect()
+
+    val leftAndRightPartsRDD =
+      pCOverX.join(binData).map(v => {
+        val x: Vector[Double] = new DenseVector[Double](v._2._2.toArray.map(_.toDouble))
+        val pC: Array[Double] = v._2._1
+        (pC.map(value => (1.0 - x) * value), pC.map(value => x * value))
+      })
+    val a = leftAndRightPartsRDD.collect()
+
+    val leftAndRightParts = leftAndRightPartsRDD.reduce((v1, v2) => {
+      val leftPart: Array[Vector[Double]] = {
+        v1._1.zip(v2._1).map { case (x, y) => x + y }
+      }
+
+      val rightPart: Array[Vector[Double]] = {
+        v1._2.zip(v2._2).map { case (x, y) => x + y }
+      }
       (leftPart, rightPart)
     })
 
@@ -39,7 +52,7 @@ class BinaryModel(val numRows: Int, val numCols: Int) extends Serializable {
         val rArr = rVec.toArray
         val arr = lArr.zip(rArr).map {
           case (lVal, rVal) => {
-            if (lVal > rVal) 0 else 1
+            if (lVal >= rVal) 0 else 1
           }
         }
         new DenseVector[Int](arr)
@@ -53,12 +66,14 @@ class BinaryModel(val numRows: Int, val numCols: Int) extends Serializable {
       ).toArray
   }
 
-  def epsilon(pCOverX: RDD[(Long, Array[Double])],
+  def epsilon(logPCOverX: RDD[(Long, Array[Double])],
               binMean: Array[Array[DenseVector[Int]]],
               binData: RDD[(Long, Vector[Int])],
               binSize: Int
              ): Array[Array[Double]] = {
     println("Bin Model: epsilon")
+    val pCOverX = logPCOverX.mapValues(_.map(scala.math.exp))
+
     val numerator: Array[Array[Double]] = pCOverX.join(binData).map {
       case (i, data: (Array[Double], Vector[Int])) => {
         val pC: Array[Double] = data._1
@@ -73,37 +88,37 @@ class BinaryModel(val numRows: Int, val numCols: Int) extends Serializable {
         }
         res
       }
-    }.reduce((v1, v2) => {
-      v1.zip(v2).map {
-        case (x, y) => {
-          x.zip(y).map { case (x1, y1) => x1 + y1 }
+    }.reduce((v1: Array[Array[Double]], v2: Array[Array[Double]]) => {
+      for (row <- 0 until numRows) {
+        for (col <- 0 until numCols) {
+          v1(row)(col) += v2(row)(col)
         }
       }
+      v1
     })
 
-    val denumerator: Array[Array[Double]] = pCOverX.map {
-      case (index: Long, data: Array[Double]) => {
+    val denominator: Array[Array[Double]] = pCOverX.map {
+      case (index: Long, pCOverX: Array[Double]) => {
         val res: Array[Array[Double]] = RandomHelper.create2dArray(numRows, numCols, 0.0)
         for (row <- 0 until numRows) {
           for (col <- 0 until numCols) {
-            res(row)(col) = data(DistributionHelper.index(row, col, numCols)) * binSize
+            res(row)(col) = pCOverX(DistributionHelper.index(row, col, numCols)) * binSize
           }
         }
         res
       }
     }.reduce {
       case (v1: Array[Array[Double]], v2: Array[Array[Double]]) => {
-        v1.zip(v2).map {
-          case (rV1: Array[Double], rV2: Array[Double]) => {
-            rV1.zip(rV2).map {
-              case (x1: Double, x2: Double) => x1 + x2
-            }
+        for (row <- 0 until numRows) {
+          for (col <- 0 until numCols) {
+            v1(row)(col) += v2(row)(col)
           }
         }
+        v1
       }
     }
 
-    numerator.zip(denumerator).map {
+    numerator.zip(denominator).map {
       case (num: Array[Double], denum: Array[Double]) => {
         num.zip(denum).map {
           case (numVal: Double, denumVal: Double) => numVal / denumVal

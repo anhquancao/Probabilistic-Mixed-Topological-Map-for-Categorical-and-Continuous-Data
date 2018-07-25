@@ -50,18 +50,17 @@ object Main {
     val numRows: Int = 2
     val numCols: Int = 2
 
-    val dataSize: Int = 1000
+    val dataSize: Int = 100
 
-    val r: RDD[Vector[Double]] = Reader.read("src/resources/test.txt", "[ \t]+")
+    val r: RDD[Vector[Double]] = Reader.read("src/resources/s1.txt", "[ \t]+")
       .map(arr => new DenseVector[Double](arr.map(_.toDouble)))
 
-    val a = r.collect()
 
     val normalizedR = normalizeData(r)
 
     val test = normalizedR.take(10)
 
-    val b: RDD[Vector[Int]] = Reader.read("src/resources/test.csv", ",")
+    val b: RDD[Vector[Int]] = Reader.read("src/resources/digits.csv", ",")
       .map(arr => new DenseVector[Int](arr.map(_.toInt)))
 
     //    AppContext.contSize = r.take(1)(0).size // size of continuous part
