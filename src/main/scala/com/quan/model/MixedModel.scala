@@ -380,14 +380,15 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
       // checked
       val logPCStar: Array[Double] = this.logPCStar(logPCStarOverX)
 
-      // compute the mean for continuous data
-      val contMean: Array[Array[Vector[Double]]] = this.continuousModel.mean(logPCOverX, contData)
+      val contDataCollett = contData.collect()
 
+      // compute the mean for continuous data
+      // checked
+      val contMean: Array[Array[Vector[Double]]] = this.continuousModel.mean(logPCOverX, contData)
 
       //
       // compute continuous standard deviation
       val contVariance = this.continuousModel.variance(logPCOverX, contData, contMean, contSize)
-
 
       //
       val binMean: Array[Array[DenseVector[Int]]] = this.binaryModel.mean(logPCOverX, binData)

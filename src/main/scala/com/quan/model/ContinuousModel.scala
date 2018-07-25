@@ -41,12 +41,12 @@ class ContinuousModel(val numRows: Int, val numCols: Int) extends Serializable {
       v
     })
 
-    val denumerator: Array[Double] = pCOverX.map(_._2)
+    val denominator: Array[Double] = pCOverX.map(_._2)
       .reduce((v1: Array[Double], v2: Array[Double]) => {
         for (row <- 0 until numRows) {
           for (col <- 0 until numCols) {
             val index: Int = DistributionHelper.index(row, col, numCols)
-            v1(index) = v2(index)
+            v1(index) += v2(index)
           }
         }
         v1
@@ -73,7 +73,7 @@ class ContinuousModel(val numRows: Int, val numCols: Int) extends Serializable {
     val t = for (row <- 0 until numRows)
       yield (
         for (col <- 0 until numCols)
-          yield numerator(row)(col) / denumerator(DistributionHelper.index(row, col, numCols))
+          yield numerator(row)(col) / denominator(DistributionHelper.index(row, col, numCols))
         ).toArray
     val res = t.toArray
     res
