@@ -50,7 +50,7 @@ object Main {
     val numRows: Int = 4
     val numCols: Int = 4
 
-    val dataSize: Int = 500
+    val dataSize: Int = 1000
 
     val r: RDD[Vector[Double]] = Reader.read("src/resources/s1.txt", "[ \t]+")
       .map(arr => new DenseVector[Double](arr.map(_.toDouble)))
