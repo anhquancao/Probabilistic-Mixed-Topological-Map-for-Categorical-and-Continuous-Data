@@ -250,6 +250,7 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
   // p(c*)
   def logPCStar(logPCStarOverX: RDD[(Long, Array[Double])]): Array[Double] = {
     println("Mixed model: Compute pC")
+    val dataSize = logPCStarOverX.count()
     val maxLogPCOverX: Array[Double] = logPCStarOverX.map(_._2).reduce((v1: Array[Double], v2: Array[Double]) => {
       for (row <- 0 until numRows) {
         for (col <- 0 until numCols) {
@@ -279,7 +280,7 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
     for (row <- 0 until numRows) {
       // log(p(C)) = b + sum exp(a_i - b) - log(N)
       for (col <- 0 until numCols) {
-        sumExp(row * numCols + col) = maxLogPCOverX(row * numCols + col) + scala.math.log(sumExp(row * numCols + col)) - scala.math.log(numCols * numRows)
+        sumExp(row * numCols + col) = maxLogPCOverX(row * numCols + col) + scala.math.log(sumExp(row * numCols + col)) - scala.math.log(dataSize)
       }
     }
     sumExp

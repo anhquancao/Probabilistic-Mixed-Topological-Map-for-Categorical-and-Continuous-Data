@@ -47,8 +47,8 @@ object Main {
 
     Logger.getLogger("org").setLevel(Level.ERROR)
 
-    val numRows: Int = 2
-    val numCols: Int = 2
+    val numRows: Int = 4
+    val numCols: Int = 4
 
     val dataSize: Int = 500
 
