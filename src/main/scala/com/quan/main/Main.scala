@@ -1,8 +1,5 @@
 package com.quan.main
 
-import java.io.{FileWriter}
-import java.util.Calendar
-
 import breeze.linalg._
 import com.quan.model.{Cell, MixedModel}
 import org.apache.log4j.{Level, Logger}
@@ -11,11 +8,7 @@ import org.apache.spark.rdd.RDD
 
 object Main {
 
-  def write(fileName: String, content: String, append: Boolean = true) = {
-    val pw = new FileWriter("out/" + fileName, append)
-    pw.write(content)
-    pw.close()
-  }
+
 
   def normalizeData(data: RDD[Vector[Double]]): RDD[Vector[Double]] = {
     val maxVector: Vector[Double] = data.reduce((v1: Vector[Double], v2: Vector[Double]) => {
@@ -39,7 +32,7 @@ object Main {
       }
       v
     })
-//    val normData = normalizedData.collect()
+    //    val normData = normalizedData.collect()
     normalizedData
   }
 
@@ -47,10 +40,12 @@ object Main {
 
     Logger.getLogger("org").setLevel(Level.ERROR)
 
-    val numRows: Int = 4
-    val numCols: Int = 4
+    val maxIter = 30
 
-    val dataSize: Int = 1000
+    val numRows: Int = 5
+    val numCols: Int = 5
+
+    val dataSize: Int = 500
 
     val r: RDD[Vector[Double]] = Reader.read("src/resources/s1.txt", "[ \t]+")
       .map(arr => new DenseVector[Double](arr.map(_.toDouble)))
@@ -71,24 +66,7 @@ object Main {
     val contData: RDD[(Long, Vector[Double])] = normalizedR.zipWithIndex().map(t => (t._2, t._1)).filter(_._1 < dataSize)
 
     val model = new MixedModel(numRows, numCols)
-    val cells: Array[Array[Cell]] = model.train(binData, contData, 3)
+    val cells: Array[Array[Cell]] = model.train(binData, contData, maxIter)
 
-    val time = Calendar.getInstance().getTime()
-    val probFilename = time + "-prob"
-    val itemsFilename = time + "-items"
-
-    for (row <- 0 until numRows) {
-      for (col <- 0 until numCols) {
-        val cell = cells(row)(col)
-        write(probFilename, cell.prob + "")
-        write(itemsFilename, cell.numItems + "")
-        if (col != numCols - 1) {
-          write(probFilename, ",")
-          write(itemsFilename, ",")
-        }
-      }
-      write(probFilename, "\n")
-      write(itemsFilename, "\n")
-    }
   }
 }

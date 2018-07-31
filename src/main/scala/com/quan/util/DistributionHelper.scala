@@ -18,8 +18,8 @@ object DistributionHelper {
     val std = scala.math.sqrt(variance)
     val diffVec = x - mean
     val s = x.length
-//    val normValue = norm(diffVec) / s
-    val normValue = norm(diffVec)
+    val normValue = norm(diffVec) / s
+//    val normValue = norm(diffVec)
     val res = -1.0 * s / 2 * scala.math.log(2 * scala.math.Pi * std) - 0.5 * scala.math.pow(normValue / std, 2.0)
     res
   }
@@ -71,8 +71,8 @@ object DistributionHelper {
   def logBernouli(x: Vector[Int], mean: Vector[Int], epsilon: Double): Double = {
     val hamming: Double = DistributionHelper.hammingDistance(x, mean) * 1.0
     val res = hamming * scala.math.log(epsilon) + (x.length - hamming) * scala.math.log(1 - epsilon)
-//    res / x.length
-    res
+    res / x.length
+//    res
   }
 
   def index(row: Int, col: Int, numCols: Int): Int = {

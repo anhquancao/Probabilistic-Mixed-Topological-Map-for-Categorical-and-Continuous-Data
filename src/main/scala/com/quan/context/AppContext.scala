@@ -21,6 +21,7 @@ object AppContext {
 
   def getRandom: Random = {
     if (this.random.isEmpty) {
+//      random = Some(new Random(1))
       random = Some(new Random(1))
     }
     random.get

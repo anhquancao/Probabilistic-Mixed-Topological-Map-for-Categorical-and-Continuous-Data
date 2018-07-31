@@ -1,5 +1,8 @@
 package com.quan.model
 
+import java.nio.file.{Files, Path, Paths}
+import java.util.Calendar
+
 import breeze.linalg._
 import com.quan.util.{DistributionHelper, RandomHelper}
 import org.apache.spark.rdd.RDD
@@ -42,9 +45,9 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
 
     // compute gaussian
     val logPXContOverC: RDD[(Long, Array[Array[Double]])] = this.continuousModel.logPXOverC(contData, cells)
-    //    val p = logPXContOverC.take(20)
+        val p = logPXContOverC.take(20)
     //    //
-    //    val b = logPXBinOverC.take(3)
+        val b = logPXBinOverC.take(3)
     //
     //    val bData = binData.collect()
     //
@@ -60,7 +63,7 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
       (p._1, temp.toArray)
     })
 
-//    val test = logPXOverC.collect()
+    //    val test = logPXOverC.collect()
 
     logPXOverC
   }
@@ -319,6 +322,7 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
     res
   }
 
+
   def train(binData: RDD[(Long, Vector[Int])],
             contData: RDD[(Long, Vector[Double])],
             maxIteration: Int = 10
@@ -332,6 +336,9 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
     var cells: Array[Array[Cell]] =
       createCells(contSize, binSize, binData, contData)
 
+    val dirName = "out/exp " + Calendar.getInstance().getTime()
+    val path: Path = Paths.get(dirName)
+    Files.createDirectories(path)
 
     while (iteration < maxIteration) {
       iteration += 1
@@ -350,7 +357,7 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
       // checked
       val logPXOverCStar: RDD[(Long, Array[Array[Double]])] = this.logPXOverCStar(logPXOverC, T)
 
-      //      val logPXOverCStarCollect = logPXOverCStar.collect()
+      val logPXOverCStarCollect = logPXOverCStar.collect()
 
       // compute p(x)
       // checked
@@ -362,26 +369,26 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
       // checked
       val logPCAndCStarOverX: RDD[(Long, Array[Array[Double]])] = this.logPCAndCStarOverX(logPX, cells, logPXOverC, T)
 
-//      val logPCAndCStarOverXCollect = logPCAndCStarOverX.collect()
+      //      val logPCAndCStarOverXCollect = logPCAndCStarOverX.collect()
 
       // compute p(c/x)
       // checked
       val logPCOverX: RDD[(Long, Array[Double])] = this.logPCOverX(logPCAndCStarOverX)
 
-//      val logPCOverXCollect = logPCOverX.collect()
+      val logPCOverXCollect = logPCOverX.collect()
 
 
       // compute p(cStar/x)
       // checked
       val logPCStarOverX: RDD[(Long, Array[Double])] = this.logPCStarOverX(logPCAndCStarOverX)
 
-//      val logPCStarOverXCollect = logPCStarOverX.collect()
+      val logPCStarOverXCollect = logPCStarOverX.collect()
 
       // compute p(c*) from p(c*/x)
       // checked
       val logPCStar: Array[Double] = this.logPCStar(logPCStarOverX)
 
-//      val contDataCollect = contData.collect()
+      //      val contDataCollect = contData.collect()
 
 
       // compute the mean for continuous data
@@ -392,7 +399,7 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
       // checked
       val contVariance = this.continuousModel.variance(logPCOverX, contData, contMean, contSize)
 
-//      val binDataCollect = binData.collect()
+      //      val binDataCollect = binData.collect()
 
       // checked
       val binMean: Array[Array[DenseVector[Int]]] = this.binaryModel.mean(logPCOverX, binData)
@@ -415,7 +422,8 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
           cells(row)(col).numItems = numItemsPerCell(row)(col)
         }
       }
-//      val t = "test"
+      val t = "test"
+      RandomHelper.writeCells(iteration, numRows, numCols, cells, dirName)
     }
     cells
   }
