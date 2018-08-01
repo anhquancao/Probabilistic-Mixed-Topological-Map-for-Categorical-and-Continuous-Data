@@ -34,6 +34,22 @@ object RandomHelper {
     pw.close()
   }
 
+  def writeLabels(iter: Int, dataWithLabels: Array[(Long, (Vector[Double], Int))], dirName: String): Unit = {
+
+    val labelsFileName = dirName + "/labels-" + iter
+
+    Files.createFile(Paths.get(labelsFileName))
+
+    for (index <- dataWithLabels.indices) {
+      val data = dataWithLabels(index)._2._1.toArray
+      for (v <- data.indices) {
+        write(labelsFileName, data(v) + ",")
+      }
+      write(labelsFileName, dataWithLabels(index)._2._2 + "")
+      write(labelsFileName, "\n")
+    }
+  }
+
   def writeCells(iter: Int, numRows: Int, numCols: Int, cells: Array[Array[Cell]], dirName: String): Unit = {
 
     val probFilename = dirName + "/prob-" + iter

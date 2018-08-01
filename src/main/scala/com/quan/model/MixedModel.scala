@@ -45,9 +45,9 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
 
     // compute gaussian
     val logPXContOverC: RDD[(Long, Array[Array[Double]])] = this.continuousModel.logPXOverC(contData, cells)
-        val p = logPXContOverC.take(20)
+    val p = logPXContOverC.take(20)
     //    //
-        val b = logPXBinOverC.take(3)
+    val b = logPXBinOverC.take(3)
     //
     //    val bData = binData.collect()
     //
@@ -298,8 +298,14 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
     T
   }
 
-  def itemsPerCell(logPCOverX: RDD[(Long, Array[Double])]): Array[Array[Double]] = {
-    val itemsPerCell: Array[Int] = logPCOverX.map((v: (Long, Array[Double])) => {
+  def assignItemsToCluster(logPCStarOverX: RDD[(Long, Array[Double])]): RDD[(Long, Int)] = {
+    logPCStarOverX.map((v: (Long, Array[Double])) => {
+      (v._1, v._2.zipWithIndex.maxBy(_._1)._2)
+    })
+  }
+
+  def itemsPerCell(logPCStarOverX: RDD[(Long, Array[Double])]): Array[Array[Double]] = {
+    val itemsPerCell: Array[Int] = logPCStarOverX.map((v: (Long, Array[Double])) => {
       val arr = v._2
       val maxVal = arr.max
       arr.map(v => {
@@ -412,6 +418,8 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
 
       val numItemsPerCell: Array[Array[Double]] = itemsPerCell(logPCStarOverX)
 
+      val labels: RDD[(Long, Int)] = assignItemsToCluster(logPCStarOverX)
+
       for (row <- 0 until numRows) {
         for (col <- 0 until numCols) {
           cells(row)(col).contMean = contMean(row)(col)
@@ -424,6 +432,8 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
       }
       val t = "test"
       RandomHelper.writeCells(iteration, numRows, numCols, cells, dirName)
+      val dataWithLabels: Array[(Long, (Vector[Double], Int))] = contData.join(labels).collect()
+      RandomHelper.writeLabels(iteration, dataWithLabels, dirName)
     }
     cells
   }
