@@ -4,7 +4,7 @@ import java.nio.file.{Files, Path, Paths}
 import java.util.Calendar
 
 import breeze.linalg._
-import com.quan.util.{DistributionHelper, RandomHelper}
+import com.quan.util.{DistributionHelper, IOHelper, RandomHelper}
 import org.apache.spark.rdd.RDD
 
 class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) extends Serializable {
@@ -430,10 +430,9 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
           cells(row)(col).numItems = numItemsPerCell(row)(col)
         }
       }
-      val t = "test"
-      RandomHelper.writeCells(iteration, numRows, numCols, cells, dirName)
+      IOHelper.writeCells(iteration, numRows, numCols, cells, dirName)
       val dataWithLabels: Array[(Long, (Vector[Double], Int))] = contData.join(labels).collect()
-      RandomHelper.writeLabels(iteration, dataWithLabels, dirName)
+      IOHelper.writeLabels(iteration, dataWithLabels, dirName)
     }
     cells
   }

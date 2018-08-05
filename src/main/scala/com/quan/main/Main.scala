@@ -40,7 +40,7 @@ object Main {
 
     Logger.getLogger("org").setLevel(Level.ERROR)
 
-    val maxIter = 100
+    val maxIter = 30
 
     val numRows: Int = 5
     val numCols: Int = 5
