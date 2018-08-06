@@ -9,8 +9,35 @@ import org.apache.spark.rdd.RDD
 
 class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) extends Serializable {
 
-  val binaryModel = new BinaryModel(numRows, numCols)
-  val continuousModel = new ContinuousModel(numRows, numCols)
+  private val binaryModel = new BinaryModel(numRows, numCols)
+  private val continuousModel = new ContinuousModel(numRows, numCols)
+
+  private var logPXOverC: RDD[(Long, Array[Array[Double]])] = _
+
+  private var logPXOverCStar: RDD[(Long, Array[Array[Double]])] = _
+
+  private var logPX: RDD[(Long, Double)] = _
+
+  private var logPCAndCStarOverX: RDD[(Long, Array[Array[Double]])] = _
+
+  private var logPCOverX: RDD[(Long, Array[Double])] = _
+
+  private var logPCStarOverX: RDD[(Long, Array[Double])] = _
+
+  private var logPCStar: Array[Double] = _
+
+  private var contMean: Array[Array[Vector[Double]]] = _
+
+  private var contVariance: Array[Array[Double]] = _
+
+  private var binMean: Array[Array[DenseVector[Int]]] = _
+
+
+  private var binEpsilon: Array[Array[Double]] = _
+
+  private var numItemsPerCell: Array[Array[Double]] = _
+
+  private var labels: RDD[(Long, Int)] = _
 
   /**
     *
@@ -328,6 +355,12 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
     res
   }
 
+  def predictedTrainingLabels = {
+
+  }
+
+
+
 
   def train(binData: RDD[(Long, Vector[Int])],
             contData: RDD[(Long, Vector[Double])],
@@ -355,70 +388,70 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
 
       // compute p(x/c)
       // checked
-      val logPXOverC: RDD[(Long, Array[Array[Double]])] = this.logPXOverC(binData, contData, cells)
+      logPXOverC = this.logPXOverC(binData, contData, cells)
 
-      val logPXOverCCollect = logPXOverC.collect()
+      //      val logPXOverCCollect = logPXOverC.collect()
 
       // compute p(x/c*)
       // checked
-      val logPXOverCStar: RDD[(Long, Array[Array[Double]])] = this.logPXOverCStar(logPXOverC, T)
+      logPXOverCStar = this.logPXOverCStar(logPXOverC, T)
 
-      val logPXOverCStarCollect = logPXOverCStar.collect()
+      //      val logPXOverCStarCollect = logPXOverCStar.collect()
 
       // compute p(x)
       // checked
-      val logPX: RDD[(Long, Double)] = this.logPX(cells, logPXOverCStar, T)
+      logPX = this.logPX(cells, logPXOverCStar, T)
 
       //      val logPXCollect: Array[(Long, Double)] = logPX.collect()
 
       // compute p(c,c*/x)
       // checked
-      val logPCAndCStarOverX: RDD[(Long, Array[Array[Double]])] = this.logPCAndCStarOverX(logPX, cells, logPXOverC, T)
+      logPCAndCStarOverX = this.logPCAndCStarOverX(logPX, cells, logPXOverC, T)
 
       //      val logPCAndCStarOverXCollect = logPCAndCStarOverX.collect()
 
       // compute p(c/x)
       // checked
-      val logPCOverX: RDD[(Long, Array[Double])] = this.logPCOverX(logPCAndCStarOverX)
+      logPCOverX = this.logPCOverX(logPCAndCStarOverX)
 
-      val logPCOverXCollect = logPCOverX.collect()
+      //      val logPCOverXCollect = logPCOverX.collect()
 
 
       // compute p(cStar/x)
       // checked
-      val logPCStarOverX: RDD[(Long, Array[Double])] = this.logPCStarOverX(logPCAndCStarOverX)
+      logPCStarOverX = this.logPCStarOverX(logPCAndCStarOverX)
 
-      val logPCStarOverXCollect = logPCStarOverX.collect()
+      //      val logPCStarOverXCollect = logPCStarOverX.collect()
 
       // compute p(c*) from p(c*/x)
       // checked
-      val logPCStar: Array[Double] = this.logPCStar(logPCStarOverX)
+      logPCStar = this.logPCStar(logPCStarOverX)
 
       //      val contDataCollect = contData.collect()
 
 
       // compute the mean for continuous data
       // checked
-      val contMean: Array[Array[Vector[Double]]] = this.continuousModel.mean(logPCOverX, contData)
+      contMean = this.continuousModel.mean(logPCOverX, contData)
 
       // compute continuous variance
       // checked
-      val contVariance = this.continuousModel.variance(logPCOverX, contData, contMean, contSize)
+      contVariance = this.continuousModel.variance(logPCOverX, contData, contMean, contSize)
 
       //      val binDataCollect = binData.collect()
 
       // checked
-      val binMean: Array[Array[DenseVector[Int]]] = this.binaryModel.mean(logPCOverX, binData)
+     binMean = this.binaryModel.mean(logPCOverX, binData)
 
 
       // checked
-      val binEpsilon = this.binaryModel.epsilon(logPCOverX, binMean, binData, binSize)
+      binEpsilon = this.binaryModel.epsilon(logPCOverX, binMean, binData, binSize)
 
       //      val a = "a"
 
-      val numItemsPerCell: Array[Array[Double]] = itemsPerCell(logPCStarOverX)
+      numItemsPerCell = itemsPerCell(logPCStarOverX)
 
-      val labels: RDD[(Long, Int)] = assignItemsToCluster(logPCStarOverX)
+      labels = assignItemsToCluster(logPCStarOverX)
 
       for (row <- 0 until numRows) {
         for (col <- 0 until numCols) {

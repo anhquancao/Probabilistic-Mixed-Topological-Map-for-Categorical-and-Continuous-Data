@@ -68,5 +68,7 @@ object Main {
     val model = new MixedModel(numRows, numCols)
     val cells: Array[Array[Cell]] = model.train(binData, contData, maxIter)
 
+
+
   }
 }
