@@ -65,7 +65,12 @@ class InternalIndex(var point: RDD[Array[Double]], var predict: RDD[String], con
     val bi = deltas.reduceByKey((a, b) => if (a > b) b else a)
     val ai = InternalIndexHelper.aiList(target.map(x => (x._1, x._2._2)))
     val si = ai.join(bi).map(x => (x._2._2 - x._2._1) / scala.math.max(x._2._2, x._2._1))
-    val sk = si.reduce(_ + _) / si.count
+//    val test1 = si.collect()
+//    val test2 = si.count()
+    if (si.count == 0) {
+      return 0
+    }
+    val sk = si.sum / si.count
     sk
   }
 
@@ -73,6 +78,8 @@ class InternalIndex(var point: RDD[Array[Double]], var predict: RDD[String], con
    * Silhouette Index
    */
   def silhouette(): Double = {
+    val num = this.clusterLabels.collect.map(sk)
+    val denom = this.clusterLabels.count()
     this.clusterLabels.collect.map(sk).sum / this.clusterLabels.count
   }
 }

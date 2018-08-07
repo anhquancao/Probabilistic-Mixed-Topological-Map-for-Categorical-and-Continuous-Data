@@ -1,13 +1,15 @@
 package com.quan.main
 
 import breeze.linalg._
+import com.quan.context.AppContext
 import com.quan.model.{Cell, MixedModel}
+import com.quan.util.IOHelper
+import index.{ExternalIndex, InternalIndex}
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.rdd.RDD
 
 
 object Main {
-
 
 
   def normalizeData(data: RDD[Vector[Double]]): RDD[Vector[Double]] = {
@@ -40,22 +42,22 @@ object Main {
 
     Logger.getLogger("org").setLevel(Level.ERROR)
 
-    val maxIter = 30
+    val maxIter = 3
 
     val numRows: Int = 5
     val numCols: Int = 5
 
     val dataSize: Int = 500
 
-    val r: RDD[Vector[Double]] = Reader.read("src/resources/s1.txt", "[ \t]+")
+    val r: RDD[Vector[Double]] = Reader.read("src/resources/d31/d31.csv", ",")
       .map(arr => new DenseVector[Double](arr.map(_.toDouble)))
 
 
     val normalizedR = normalizeData(r)
 
-    val test = normalizedR.take(10)
+    //    val test = normalizedR.take(10)
 
-    val b: RDD[Vector[Int]] = Reader.read("src/resources/digits.csv", ",")
+    val b: RDD[Vector[Int]] = Reader.read("src/resources/d31/binData.csv", ",")
       .map(arr => new DenseVector[Int](arr.map(_.toInt)))
 
     //    AppContext.contSize = r.take(1)(0).size // size of continuous part
@@ -65,8 +67,46 @@ object Main {
     val binData: RDD[(Long, Vector[Int])] = b.zipWithIndex().map(t => (t._2, t._1)).filter(_._1 < dataSize)
     val contData: RDD[(Long, Vector[Double])] = normalizedR.zipWithIndex().map(t => (t._2, t._1)).filter(_._1 < dataSize)
 
+    val trueLabels: RDD[String] = Reader.read("src/resources/d31/labels.csv", ",")
+      .map(_.head)
+      .zipWithIndex()
+      .filter(_._2 < dataSize)
+      .map(_._1)
+
+    //    val b1 = binData.take(10)
+    //    val c1 = contData.take(10)
+    val labelsCollect = trueLabels.take(10)
+
     val model = new MixedModel(numRows, numCols)
     val cells: Array[Array[Cell]] = model.train(binData, contData, maxIter)
+
+    val predictedLabels: RDD[String] = model.predictedTrainingLabels.sortByKey().map(_._2 + "")
+
+    //    val predictedLabelsCollect = model.predictedTrainingLabels.sortByKey().take(10)
+
+    val intDirName = model.dirName + "/InternalIndices.txt"
+
+    val points: RDD[Array[Double]] = contData.join(binData).map((v: (Long, (Vector[Double], Vector[Int]))) => {
+      val a1: Array[Double] = v._2._1.toArray
+      val a2: Array[Double] = v._2._2.toArray.map(_.toDouble)
+      val arr: Array[Double] = a1 ++ a2
+      arr
+    })
+
+
+    val internalIndex = new InternalIndex(points, predictedLabels, AppContext.getSparkContext)
+    IOHelper.writeIndices(intDirName, "Silhouette: " + internalIndex.silhouette())
+    IOHelper.writeIndices(intDirName, "Davies Bouldin: " + internalIndex.davies_bouldin())
+
+    val externalIndex = new ExternalIndex(trueLabels, predictedLabels)
+
+    val extDirName = model.dirName + "/ExternalIndices.txt"
+    IOHelper.writeIndices(extDirName, "Czekanowski Dice: " + externalIndex.czekanowskiDice())
+    IOHelper.writeIndices(extDirName, "Folkes Mallows: " + externalIndex.folkesMallows())
+    IOHelper.writeIndices(extDirName, "NMI: " + externalIndex.nmi())
+    IOHelper.writeIndices(extDirName, "Precision: " + externalIndex.precision())
+    IOHelper.writeIndices(extDirName, "Recall: " + externalIndex.recall())
+    IOHelper.writeIndices(extDirName, "Rand: " + externalIndex.rand())
 
 
 

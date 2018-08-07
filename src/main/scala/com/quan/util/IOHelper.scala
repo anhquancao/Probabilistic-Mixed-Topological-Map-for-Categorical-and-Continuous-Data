@@ -30,6 +30,12 @@ object IOHelper {
     }
   }
 
+  def writeIndices(fileName: String, value: String): Unit = {
+    write(fileName, value)
+    write(fileName, "\n")
+
+  }
+
   def writeCells(iter: Int, numRows: Int, numCols: Int, cells: Array[Array[Cell]], dirName: String): Unit = {
 
     val probFilename = dirName + "/prob-" + iter

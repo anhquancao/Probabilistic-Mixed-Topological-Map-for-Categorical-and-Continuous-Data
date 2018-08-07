@@ -12,6 +12,8 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
   private val binaryModel = new BinaryModel(numRows, numCols)
   private val continuousModel = new ContinuousModel(numRows, numCols)
 
+  var dirName: String =  "out/exp " + Calendar.getInstance().getTime
+
   private var logPXOverC: RDD[(Long, Array[Array[Double]])] = _
 
   private var logPXOverCStar: RDD[(Long, Array[Array[Double]])] = _
@@ -355,8 +357,8 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
     res
   }
 
-  def predictedTrainingLabels = {
-
+  def predictedTrainingLabels: RDD[(Long, Int)] = {
+    labels
   }
 
 
@@ -375,7 +377,6 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
     var cells: Array[Array[Cell]] =
       createCells(contSize, binSize, binData, contData)
 
-    val dirName = "out/exp " + Calendar.getInstance().getTime()
     val path: Path = Paths.get(dirName)
     Files.createDirectories(path)
 
@@ -441,7 +442,7 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
       //      val binDataCollect = binData.collect()
 
       // checked
-     binMean = this.binaryModel.mean(logPCOverX, binData)
+      binMean = this.binaryModel.mean(logPCOverX, binData)
 
 
       // checked
