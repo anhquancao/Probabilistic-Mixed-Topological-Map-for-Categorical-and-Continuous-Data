@@ -42,12 +42,12 @@ object Main {
 
     Logger.getLogger("org").setLevel(Level.ERROR)
 
-    val maxIter = 3
+    val maxIter = 30
 
     val numRows: Int = 5
     val numCols: Int = 5
 
-    val dataSize: Int = 500
+    val dataSize: Int = 3000
 
     val r: RDD[Vector[Double]] = Reader.read("src/resources/d31/d31.csv", ",")
       .map(arr => new DenseVector[Double](arr.map(_.toDouble)))
