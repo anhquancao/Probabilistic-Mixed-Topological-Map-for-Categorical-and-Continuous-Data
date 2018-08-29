@@ -1,11 +1,8 @@
 package com.quan.util
 
-import java.io.FileWriter
-import java.nio.file.{Files, Paths}
 
 import breeze.linalg._
 import com.quan.context.AppContext
-import com.quan.model.Cell
 
 object RandomHelper {
   def createRandomDoubleVector(size: Long): Vector[Double] = {

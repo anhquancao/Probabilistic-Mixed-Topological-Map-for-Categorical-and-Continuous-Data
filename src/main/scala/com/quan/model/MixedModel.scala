@@ -4,6 +4,7 @@ import java.nio.file.{Files, Path, Paths}
 import java.util.Calendar
 
 import breeze.linalg._
+import com.quan.main.Reader
 import com.quan.util.{DistributionHelper, IOHelper, RandomHelper}
 import org.apache.spark.rdd.RDD
 
@@ -12,7 +13,7 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
   private val binaryModel = new BinaryModel(numRows, numCols)
   private val continuousModel = new ContinuousModel(numRows, numCols)
 
-  var dirName: String =  "out/exp " + Calendar.getInstance().getTime
+  var dirName: String = "out/exp " + Calendar.getInstance().getTime
 
   private var logPXOverC: RDD[(Long, Array[Array[Double]])] = _
 
@@ -65,6 +66,35 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
     temp.toArray
   }
 
+  def loadCells(contSize: Int, binSize: Int): Array[Array[Cell]] = {
+
+    println("Mixed mode: Load cells")
+
+    val folder = "./out/exp Wed Aug 29 10:23:39 CEST 2018/"
+
+    //    var contMean: Vector[Double] = contData.map(_._2).reduce((v1, v2) => v1 + v2).map(_ / contSize)
+    var contMean: Array[DenseVector[Double]] = Reader
+      .read(folder + "contCentroid100", ",")
+      .map((arr: Array[String]) => new DenseVector[Double](arr.map(_.toDouble)))
+      .collect()
+
+    var probs: Array[Array[Double]] = Reader
+      .read(folder + "prob-100", ",")
+      .map(_.map(_.toDouble))
+      .collect()
+
+
+    var binMean: Vector[Int] = RandomHelper.createRandomBinaryVector(binSize)
+
+    val prob = 1.0 / (numCols * numRows)
+    val temp = for (row <- 0 until numRows)
+      yield (
+        for (col <- 0 until numCols)
+          yield new Cell(row, col, contSize, binSize, probs(row)(col), contMean(row * numCols + col), binMean)
+        ).toArray
+    temp.toArray
+  }
+
   def logPXOverC(binData: RDD[(Long, Vector[Int])], contData: RDD[(Long, Vector[Double])], cells: Array[Array[Cell]]): RDD[(Long, Array[Array[Double]])] = {
 
     println("Mixed model: Compute pXOverC")
@@ -75,19 +105,17 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
     // compute gaussian
     val logPXContOverC: RDD[(Long, Array[Array[Double]])] = this.continuousModel.logPXOverC(contData, cells)
     val p = logPXContOverC.take(20)
-    //    //
+
     val b = logPXBinOverC.take(3)
-    //
-    //    val bData = binData.collect()
-    //
-    //    val pData = contData.collect()
+
 
     // compute the p(x/c)
     val logPXOverC = logPXBinOverC.join(logPXContOverC).map((p: (Long, (Array[Array[Double]], Array[Array[Double]]))) => {
       val temp = for (row <- 0 until numRows)
         yield (
           for (col <- 0 until numCols)
-            yield p._2._1(row)(col) + p._2._2(row)(col)
+          //            yield p._2._1(row)(col) + p._2._2(row)(col)
+            yield p._2._2(row)(col)
           ).toArray
       (p._1, temp.toArray)
     })
@@ -362,8 +390,6 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
   }
 
 
-
-
   def train(binData: RDD[(Long, Vector[Int])],
             contData: RDD[(Long, Vector[Double])],
             maxIteration: Int = 10
@@ -376,6 +402,7 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
 
     var cells: Array[Array[Cell]] =
       createCells(contSize, binSize, binData, contData)
+
 
     val path: Path = Paths.get(dirName)
     Files.createDirectories(path)

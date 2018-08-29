@@ -41,10 +41,15 @@ object IOHelper {
     val probFilename = dirName + "/prob-" + iter
     val itemsFilename = dirName + "/items-" + iter
     val epsilonFileName = dirName + "/epsilon" + iter
+    val contCentroidFileName = dirName + "/contCentroid" + iter
+    val binCentroidFileName = dirName + "/binCentroid" + iter
 
     Files.createFile(Paths.get(probFilename))
     Files.createFile(Paths.get(itemsFilename))
     Files.createFile(Paths.get(epsilonFileName))
+    Files.createFile(Paths.get(contCentroidFileName))
+    Files.createFile(Paths.get(binCentroidFileName))
+
 
     for (row <- 0 until numRows) {
       for (col <- 0 until numCols) {
@@ -52,6 +57,8 @@ object IOHelper {
         write(probFilename, cell.prob + "")
         write(itemsFilename, cell.numItems + "")
         write(epsilonFileName, cell.binEpsilon + "")
+        write(contCentroidFileName, cell.contMean.toArray.mkString(",") + "\n")
+        write(binCentroidFileName, cell.binMean.toArray.mkString(",") + "\n")
         if (col != numCols - 1) {
           write(probFilename, ",")
           write(itemsFilename, ",")
