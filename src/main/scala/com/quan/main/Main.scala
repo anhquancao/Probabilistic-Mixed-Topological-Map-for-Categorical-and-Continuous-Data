@@ -42,14 +42,14 @@ object Main {
 
     Logger.getLogger("org").setLevel(Level.ERROR)
 
-    val maxIter = 1000
+    val maxIter = 50
 
     val numRows: Int = 5
     val numCols: Int = 5
 
-    val dataSize: Int = 1000
+    val dataSize: Int = 3100
 
-    val r: RDD[Vector[Double]] = Reader.read("src/resources/DS2/DS2.csv", ",")
+    val r: RDD[Vector[Double]] = Reader.read("src/resources/d31/d31.csv", ",")
       .map(arr => new DenseVector[Double](arr.slice(1, arr.length).map(_.toDouble)))
 
 
@@ -64,7 +64,7 @@ object Main {
     val binData: RDD[(Long, Vector[Int])] = b.zipWithIndex().map(t => (t._2, t._1)).filter(_._1 < dataSize)
     val contData: RDD[(Long, Vector[Double])] = normalizedR.zipWithIndex().map(t => (t._2, t._1)).filter(_._1 < dataSize)
 
-    val trueLabels: RDD[String] = Reader.read("src/resources/DS2/labels.csv", ",")
+    val trueLabels: RDD[String] = Reader.read("src/resources/d31/labels.csv", ",")
       .map(_.head)
       .zipWithIndex()
       .filter(_._2 < dataSize)

@@ -42,6 +42,13 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
 
   private var labels: RDD[(Long, Int)] = _
 
+  def genContMean(row: Int, col: Int, numFeatures: Int, numRows: Int, numCols: Int): Vector[Double] = {
+    val temp: Array[Double] = Array(
+      row * 1.0 / numRows + 1.0 / (2 * numRows),
+      col * 1.0 / numCols + 1.0 / (2 * numCols))
+    new DenseVector[Double](temp)
+  }
+
   /**
     *
     * @return
@@ -53,44 +60,20 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
     println("Mixed mode: Create cells")
 
     //    var contMean: Vector[Double] = contData.map(_._2).reduce((v1, v2) => v1 + v2).map(_ / contSize)
-    var contMean: Vector[Double] = RandomHelper.createRandomDoubleVector(contSize)
+    //    var contMean: Vector[Double] = RandomHelper.createRandomDoubleVector(contSize)
 
-    var binMean: Vector[Int] = RandomHelper.createRandomBinaryVector(binSize)
-
-    val prob = 1.0 / (numCols * numRows)
-    val temp = for (row <- 0 until numRows)
-      yield (
-        for (col <- 0 until numCols)
-          yield new Cell(row, col, contSize, binSize, prob, contMean, binMean)
-        ).toArray
-    temp.toArray
-  }
-
-  def loadCells(contSize: Int, binSize: Int): Array[Array[Cell]] = {
-
-    println("Mixed mode: Load cells")
-
-    val folder = "./out/exp Wed Aug 29 10:23:39 CEST 2018/"
-
-    //    var contMean: Vector[Double] = contData.map(_._2).reduce((v1, v2) => v1 + v2).map(_ / contSize)
-    var contMean: Array[DenseVector[Double]] = Reader
-      .read(folder + "contCentroid100", ",")
-      .map((arr: Array[String]) => new DenseVector[Double](arr.map(_.toDouble)))
-      .collect()
-
-    var probs: Array[Array[Double]] = Reader
-      .read(folder + "prob-100", ",")
-      .map(_.map(_.toDouble))
-      .collect()
-
-
-    var binMean: Vector[Int] = RandomHelper.createRandomBinaryVector(binSize)
+    //    var binMean: Vector[Int] = RandomHelper.createRandomBinaryVector(binSize)
 
     val prob = 1.0 / (numCols * numRows)
     val temp = for (row <- 0 until numRows)
       yield (
         for (col <- 0 until numCols)
-          yield new Cell(row, col, contSize, binSize, probs(row)(col), contMean(row * numCols + col), binMean)
+          yield new Cell(
+            row, col,
+            contSize, binSize, prob,
+            genContMean(row, col, contSize, numRows, numCols),
+            RandomHelper.createRandomBinaryVector(binSize),
+            numRows, numCols)
         ).toArray
     temp.toArray
   }
@@ -114,8 +97,8 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
       val temp = for (row <- 0 until numRows)
         yield (
           for (col <- 0 until numCols)
-          //            yield p._2._1(row)(col) + p._2._2(row)(col)
-            yield p._2._2(row)(col)
+            yield p._2._1(row)(col) + p._2._2(row)(col)
+          //            yield p._2._2(row)(col)
           ).toArray
       (p._1, temp.toArray)
     })
@@ -355,6 +338,13 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
     T
   }
 
+  def assignItemsToClusterUsingPCX(logPCOverX: RDD[(Long, Array[Double])]): RDD[(Long, Int)] = {
+    logPCOverX.map((v: (Long, Array[Double])) => {
+      (v._1, v._2.zipWithIndex.maxBy(_._1)._2)
+    })
+  }
+
+
   def assignItemsToCluster(logPCStarOverX: RDD[(Long, Array[Double])]): RDD[(Long, Int)] = {
     logPCStarOverX.map((v: (Long, Array[Double])) => {
       (v._1, v._2.zipWithIndex.maxBy(_._1)._2)
@@ -403,9 +393,11 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
     var cells: Array[Array[Cell]] =
       createCells(contSize, binSize, binData, contData)
 
-
     val path: Path = Paths.get(dirName)
     Files.createDirectories(path)
+
+    IOHelper.writeCells(0, numRows, numCols, cells, dirName)
+
 
     while (iteration < maxIteration) {
       iteration += 1
@@ -479,7 +471,8 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
 
       numItemsPerCell = itemsPerCell(logPCStarOverX)
 
-      labels = assignItemsToCluster(logPCStarOverX)
+      //      labels = assignItemsToCluster(logPCStarOverX)
+      labels = assignItemsToClusterUsingPCX(logPCOverX)
 
       for (row <- 0 until numRows) {
         for (col <- 0 until numCols) {

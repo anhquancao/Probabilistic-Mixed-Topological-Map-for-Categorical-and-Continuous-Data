@@ -12,13 +12,15 @@ import com.quan.util.{DistributionHelper, RandomHelper}
 class Cell(val rowI: Int, val colI: Int, val contSize: Int,
            val binSize: Int, var prob: Double,
            var contMean: Vector[Double],
-           var binMean: Vector[Int]) extends Serializable {
+           var binMean: Vector[Int],
+           numRows: Int,
+           numCols: Int) extends Serializable {
   val col: Int = colI
   var row: Int = rowI
   var numItems = 0.0
 
   // continuous parameters
-  var contVariance: Double = AppContext.getRandom.nextDouble + 0.5
+  var contVariance: Double = 1.0 / (4 * numRows * numCols)
   //  var contMean: Vector[Double] = RandomHelper.createRandomDoubleVector(contSize)
 
   // binary parameters
