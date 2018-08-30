@@ -4,7 +4,6 @@ import java.nio.file.{Files, Path, Paths}
 import java.util.Calendar
 
 import breeze.linalg._
-import com.quan.main.Reader
 import com.quan.util.{DistributionHelper, IOHelper, RandomHelper}
 import org.apache.spark.rdd.RDD
 
@@ -87,18 +86,14 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
 
     // compute gaussian
     val logPXContOverC: RDD[(Long, Array[Array[Double]])] = this.continuousModel.logPXOverC(contData, cells)
-    val p = logPXContOverC.take(20)
-
-    val b = logPXBinOverC.take(3)
-
 
     // compute the p(x/c)
     val logPXOverC = logPXBinOverC.join(logPXContOverC).map((p: (Long, (Array[Array[Double]], Array[Array[Double]]))) => {
       val temp = for (row <- 0 until numRows)
         yield (
           for (col <- 0 until numCols)
-            yield p._2._1(row)(col) + p._2._2(row)(col)
-          //            yield p._2._2(row)(col)
+          //            yield p._2._1(row)(col) + p._2._2(row)(col)
+            yield p._2._2(row)(col)
           ).toArray
       (p._1, temp.toArray)
     })
