@@ -25,6 +25,6 @@ class Cell(val rowI: Int, val colI: Int, val contSize: Int,
 
   // binary parameters
   //  var binMean: Vector[Int] = RandomHelper.createRandomBinaryVector(binSize)
-  var binEpsilon: Double = AppContext.getRandom.nextDouble() / 2
+  var binEpsilon: Double = AppContext.getRandom.nextDouble()
 
 }

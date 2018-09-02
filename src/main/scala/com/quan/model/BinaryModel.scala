@@ -21,8 +21,8 @@ class BinaryModel(val numRows: Int, val numCols: Int) extends Serializable {
     println("Bin Model: mean")
     val pCOverX: RDD[(Long, Array[Double])] = logPCOverX.mapValues(_.map(scala.math.exp))
 
-    val t1 = pCOverX.collect()
-    val t2 = binData.collect()
+//    val t1 = pCOverX.collect()
+//    val t2 = binData.collect()
 
     val leftAndRightPartsRDD =
       pCOverX.join(binData).map(v => {
@@ -30,7 +30,7 @@ class BinaryModel(val numRows: Int, val numCols: Int) extends Serializable {
         val pC: Array[Double] = v._2._1
         (pC.map(value => (1.0 - x) * value), pC.map(value => x * value))
       })
-    val a = leftAndRightPartsRDD.collect()
+//    val a = leftAndRightPartsRDD.collect()
 
     val leftAndRightParts = leftAndRightPartsRDD.reduce((v1, v2) => {
       val leftPart: Array[Vector[Double]] = {

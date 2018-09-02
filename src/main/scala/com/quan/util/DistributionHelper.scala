@@ -19,7 +19,7 @@ object DistributionHelper {
     val diffVec = x - mean
     val s = x.length
     val normValue = norm(diffVec) / s
-//    val normValue = norm(diffVec)
+    //    val normValue = norm(diffVec)
     val res = -1.0 * s / 2 * scala.math.log(2 * scala.math.Pi * std) - 0.5 * scala.math.pow(normValue / std, 2.0)
     res
   }
@@ -41,7 +41,7 @@ object DistributionHelper {
     val numeratorVec: DenseVector[Double] = -0.5 * num1 * diffVec
     val numerator: Double = numeratorVec(0)
     val denominator1 = 0.5 * s * scala.math.log(2 * scala.math.Pi)
-//    val test = det(covar)
+    //    val test = det(covar)
     val denominator2 = 0.5 * scala.math.log(det(covar))
     val denominator = denominator1 + denominator2
     val res = numerator - denominator
@@ -68,11 +68,31 @@ object DistributionHelper {
     scala.math.exp(-0.5 * distance / T)
   }
 
+
+  def C(k: Int, n: Int): Double = {
+    var res = 1.0
+
+    for (i <- 1 to k) {
+      res = res * (n.toDouble - (k.toDouble - i.toDouble)) / i
+    }
+    res
+  }
+
   def logBernouli(x: Vector[Int], mean: Vector[Int], epsilon: Double): Double = {
+    var _epsilon = epsilon
+    if (_epsilon < 1e-30) {
+      _epsilon = 1e-30
+    }
+
     val hamming: Double = DistributionHelper.hammingDistance(x, mean) * 1.0
-    val res = hamming * scala.math.log(epsilon) + (x.length - hamming) * scala.math.log(1 - epsilon)
-    res / x.length
-//    res
+
+    //    val c = C(hamming.toInt, x.length)
+
+    //    val logC = scala.math.log(c)
+
+    val res: Double = hamming * scala.math.log(_epsilon) + (x.length - hamming) * scala.math.log(1 - _epsilon)
+    //    res / x.length
+    res
   }
 
   def index(row: Int, col: Int, numCols: Int): Int = {

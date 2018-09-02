@@ -1,0 +1,2 @@
+Silhouette: -0.03424999512981672
+Davies Bouldin: 16.2681128498173

@@ -42,12 +42,12 @@ object Main {
 
     Logger.getLogger("org").setLevel(Level.ERROR)
 
-    val maxIter = 50
+    val maxIter = 30
 
-    val numRows: Int = 5
-    val numCols: Int = 5
+    val numRows: Int = 6
+    val numCols: Int = 6
 
-    val dataSize: Int = 3100
+    val dataSize: Int = 2000
 
     val r: RDD[Vector[Double]] = Reader.read("src/resources/d31/d31.csv", ",")
       .map(arr => new DenseVector[Double](arr.slice(1, arr.length).map(_.toDouble)))
@@ -56,7 +56,7 @@ object Main {
     val normalizedR = normalizeData(r)
 
 
-    val b: RDD[Vector[Int]] = Reader.read("src/resources/test/ones.csv", ",")
+    val b: RDD[Vector[Int]] = Reader.read("src/resources/digits.csv", ",")
       .map(arr => new DenseVector[Int](arr.map(_.toInt)))
 
 
@@ -69,10 +69,6 @@ object Main {
       .zipWithIndex()
       .filter(_._2 < dataSize)
       .map(_._1)
-
-    //    val b1 = binData.take(10)
-    //    val c1 = contData.take(10)
-    val labelsCollect = trueLabels.take(10)
 
     val model = new MixedModel(numRows, numCols)
     val cells: Array[Array[Cell]] = model.train(binData, contData, maxIter)

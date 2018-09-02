@@ -73,7 +73,15 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
             genContMean(row, col, contSize, numRows, numCols),
             RandomHelper.createRandomBinaryVector(binSize),
             numRows, numCols)
-        ).toArray
+        ).toArray// compute the p(x/c)
+    //    val logPXOverC = logPXBinOverC.join(logPXContOverC).map((p: (Long, (Array[Array[Double]], Array[Array[Double]]))) => {
+    //      val temp = for (row <- 0 until numRows)
+    //        yield (
+    //          for (col <- 0 until numCols)
+    //            yield p._2._1(row)(col) + p._2._2(row)(col)
+    //          ).toArray
+    //      (p._1, temp.toArray)
+    //    })
     temp.toArray
   }
 
@@ -85,22 +93,21 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
     val logPXBinOverC: RDD[(Long, Array[Array[Double]])] = this.binaryModel.logPXOverC(binData, cells)
 
     // compute gaussian
-    val logPXContOverC: RDD[(Long, Array[Array[Double]])] = this.continuousModel.logPXOverC(contData, cells)
+//    val logPXContOverC: RDD[(Long, Array[Array[Double]])] = this.continuousModel.logPXOverC(contData, cells)
 
-    // compute the p(x/c)
-    val logPXOverC = logPXBinOverC.join(logPXContOverC).map((p: (Long, (Array[Array[Double]], Array[Array[Double]]))) => {
-      val temp = for (row <- 0 until numRows)
-        yield (
-          for (col <- 0 until numCols)
-          //            yield p._2._1(row)(col) + p._2._2(row)(col)
-            yield p._2._2(row)(col)
-          ).toArray
-      (p._1, temp.toArray)
-    })
+    //     compute the p(x/c)
+//    val logPXOverC = logPXBinOverC.join(logPXContOverC).map((p: (Long, (Array[Array[Double]], Array[Array[Double]]))) => {
+//      val temp = for (row <- 0 until numRows)
+//        yield (
+//          for (col <- 0 until numCols)
+//            yield p._2._1(row)(col) + p._2._2(row)(col)
+//          ).toArray
+//      (p._1, temp.toArray)
+//    })
 
-    //    val test = logPXOverC.collect()
 
-    logPXOverC
+//    logPXOverC
+    logPXBinOverC
   }
 
   //  var count = 0
@@ -447,11 +454,11 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
 
       // compute the mean for continuous data
       // checked
-      contMean = this.continuousModel.mean(logPCOverX, contData)
+//      contMean = this.continuousModel.mean(logPCOverX, contData)
 
       // compute continuous variance
       // checked
-      contVariance = this.continuousModel.variance(logPCOverX, contData, contMean, contSize)
+//      contVariance = this.continuousModel.variance(logPCOverX, contData, contMean, contSize)
 
       //      val binDataCollect = binData.collect()
 
@@ -471,8 +478,8 @@ class MixedModel(numRows: Int, numCols: Int, TMin: Int = 1, TMax: Int = 10) exte
 
       for (row <- 0 until numRows) {
         for (col <- 0 until numCols) {
-          cells(row)(col).contMean = contMean(row)(col)
-          cells(row)(col).contVariance = contVariance(row)(col)
+//          cells(row)(col).contMean = contMean(row)(col)
+//          cells(row)(col).contVariance = contVariance(row)(col)
           cells(row)(col).binMean = binMean(row)(col)
           cells(row)(col).binEpsilon = binEpsilon(row)(col)
           cells(row)(col).prob = scala.math.exp(logPCStar(DistributionHelper.index(row, col, numCols)))
