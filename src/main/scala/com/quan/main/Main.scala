@@ -42,10 +42,10 @@ object Main {
 
     Logger.getLogger("org").setLevel(Level.ERROR)
 
-    val maxIter = 30
+    val maxIter = 50
 
-    val numRows: Int = 6
-    val numCols: Int = 6
+    val numRows: Int = 5
+    val numCols: Int = 5
 
     val dataSize: Int = 2000
 
@@ -70,7 +70,7 @@ object Main {
       .filter(_._2 < dataSize)
       .map(_._1)
 
-    val model = new MixedModel(numRows, numCols)
+    val model = new MixedModel(numRows, numCols,1, 10)
     val cells: Array[Array[Cell]] = model.train(binData, contData, maxIter)
 
     val predictedLabels: RDD[String] = model.predictedTrainingLabels.sortByKey().map(_._2 + "")

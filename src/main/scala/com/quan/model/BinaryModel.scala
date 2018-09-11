@@ -7,13 +7,18 @@ import org.apache.spark.rdd.RDD
 class BinaryModel(val numRows: Int, val numCols: Int) extends Serializable {
   def logPXOverC(binData: RDD[(Long, Vector[Int])], cells: Array[Array[Cell]]): RDD[(Long, Array[Array[Double]])] = {
     println("Bin Model: pXOverC")
-    binData.mapValues(x => {
+    binData.mapValues((x: Vector[Int]) => {
+
       val temp = for (row <- 0 until numRows)
         yield (
           for (col <- 0 until numCols)
             yield DistributionHelper.logBernouli(x, cells(row)(col).binMean, cells(row)(col).binEpsilon)
           ).toArray
-      temp.toArray
+      val arr = temp.toArray
+
+      //            val logTotalProps: Double = scala.math.log(arr.map(_.map(scala.math.exp)).map(_.sum).sum)
+      //            arr.map(_.map(_ - logTotalProps))
+      arr
     })
   }
 
@@ -21,8 +26,8 @@ class BinaryModel(val numRows: Int, val numCols: Int) extends Serializable {
     println("Bin Model: mean")
     val pCOverX: RDD[(Long, Array[Double])] = logPCOverX.mapValues(_.map(scala.math.exp))
 
-//    val t1 = pCOverX.collect()
-//    val t2 = binData.collect()
+    //    val t1 = pCOverX.collect()
+    //    val t2 = binData.collect()
 
     val leftAndRightPartsRDD =
       pCOverX.join(binData).map(v => {
@@ -30,7 +35,7 @@ class BinaryModel(val numRows: Int, val numCols: Int) extends Serializable {
         val pC: Array[Double] = v._2._1
         (pC.map(value => (1.0 - x) * value), pC.map(value => x * value))
       })
-//    val a = leftAndRightPartsRDD.collect()
+    //    val a = leftAndRightPartsRDD.collect()
 
     val leftAndRightParts = leftAndRightPartsRDD.reduce((v1, v2) => {
       val leftPart: Array[Vector[Double]] = {

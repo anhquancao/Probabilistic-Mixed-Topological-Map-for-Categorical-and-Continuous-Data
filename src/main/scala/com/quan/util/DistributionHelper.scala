@@ -68,16 +68,6 @@ object DistributionHelper {
     scala.math.exp(-0.5 * distance / T)
   }
 
-
-  def C(k: Int, n: Int): Double = {
-    var res = 1.0
-
-    for (i <- 1 to k) {
-      res = res * (n.toDouble - (k.toDouble - i.toDouble)) / i
-    }
-    res
-  }
-
   def logBernouli(x: Vector[Int], mean: Vector[Int], epsilon: Double): Double = {
     var _epsilon = epsilon
     if (_epsilon < 1e-30) {
@@ -86,12 +76,8 @@ object DistributionHelper {
 
     val hamming: Double = DistributionHelper.hammingDistance(x, mean) * 1.0
 
-    //    val c = C(hamming.toInt, x.length)
-
-    //    val logC = scala.math.log(c)
 
     val res: Double = hamming * scala.math.log(_epsilon) + (x.length - hamming) * scala.math.log(1 - _epsilon)
-    //    res / x.length
     res
   }
 
